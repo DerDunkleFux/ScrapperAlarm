@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { chromium } from "playwright";
+import { chromium, Page } from "playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -15,6 +15,17 @@ type SearchResultOutput = {
 };
 
 /**
+ * Type of the alarm = 
+ */
+type Alarm = {
+  name: string;
+  idxStart?: number;
+  idxEnd?: number;
+  start?: string | null;
+  end?: string | null;
+}
+
+/**
  * Read the search query from .env.
  *
  * Example:
@@ -24,7 +35,157 @@ type SearchResultOutput = {
  */
 const searchQuery =
   process.env.SEARCH_QUERY ?? "playwright typescript tutorial";
+/**
+ * Helper function meant to search next valid alarm name and index in the current spreadsheet
+ * also increases passed Idx
+ * Stops when its found two identical values following each other e.g. "" , "" or "end 2", "end 2"
+ * @param page 
+ * @param currIdx 
+ * @param maxColIdx Optional: When given, stops at the given index even if its found two identical values right after another
+ * @returns name and index
+ * Name is the value of the cell if it changed, if it didn't change returns null
+ */
+async function getCellValueByIdx(page: Page, currIdx: number, maxColIdx?: number): Promise<{ cellValue: string | null, idx: number }> {
+  const oldValue = await page.locator('#t-formula-bar-input').textContent()
+  await page.keyboard.press('ArrowRight', { delay: 75 });
+  const newValue = await page.locator('#t-formula-bar-input').textContent()
+  if ((oldValue === newValue && maxColIdx == undefined) || currIdx === maxColIdx) {
+    if (maxColIdx != undefined)
+      console.log("Got the maxColIdx: ", maxColIdx)
+    return { cellValue: null, idx: currIdx };
+  }
+  return { cellValue: newValue, idx: currIdx + 1 }
+}
 
+/**
+ * Retrieves all alarm names and their corresponding start idx
+ * 
+ * returns array of object with name and colIdx where that name was found
+ */
+async function getAlarmNameIdxList(page: Page): Promise<{ name: string, colIdx: number }[]> {
+  let currIdx = 0
+  let currCellName: string | null = ""
+  type ColumnName = { name: string, colIdx: number }
+  const columnNameList: ColumnName[] = []
+
+  await page.keyboard.press('Control+f', { delay: 200 });
+  await page.keyboard.type('WinID', { delay: 200 });
+  await page.keyboard.press('Escape', { delay: 200 });
+  const text = await page.locator('#t-formula-bar-input').textContent()
+
+  if (text != "WinID")
+    throw new Error("Couldn't find first line with 'WinID' to select the alarm names");
+
+  while (true) {
+    const result = await getCellValueByIdx(page, currIdx)
+    currCellName = result.cellValue
+    if (currCellName === null)
+      break;
+    currIdx = result.idx
+
+    const currCol: ColumnName = { name: currCellName, colIdx: currIdx }
+    columnNameList.push(currCol)
+    console.log("Added ", currCellName, "to list")
+  }
+
+  console.log("Now have list with names and idxs: ", columnNameList)
+  return columnNameList
+}
+
+/**
+ * Searches for userID and returns the whole row in an Array
+ * @param page 
+ * @param userID 
+ * @returns promise of array with all of the cellvalues corresponding to that userID
+ */
+async function getRowValues(page: Page, userID: string, maxColIdx: number): Promise<string[]> {
+
+  const delay = 100
+  await page.keyboard.press('Control+f', { delay: delay });
+  await page.keyboard.type(userID, { delay: delay });
+  await page.keyboard.press('Escape', { delay: delay });
+  const text = await page.locator('#t-formula-bar-input').textContent()
+  if (text != userID)
+    throw new Error("Couldn't find the given UserID: " + userID);
+  const resultArray = [userID]
+  let currIdx = 0
+  while (true) {
+    const result = await getCellValueByIdx(page, currIdx, maxColIdx)
+    const currCellName = result.cellValue
+    console.log("Have current result with idx: ", result, "  ", currIdx)
+    if (currCellName === null)
+      break;
+    currIdx = result.idx
+    resultArray.push(currCellName)
+  }
+  return resultArray
+}
+/**
+ * Create array of Alarm objects corresponding to the names in columnNameList and their userID specific time values in rowValuesList
+ * @param rowValuesList Array with the userID specific information in the same order as the colIdx's of columnNameList
+ * @param columnNameList Array with the name and colIdx of the columns to see what alarm is being created
+ * @param userID 
+ * @returns Promise od Array with correctly formatted and filled Alarm objects
+ */
+async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name: string; colIdx: number; }[], userID: string): Promise<Alarm[]> {
+  const alarmList: Alarm[] = []
+
+  for (const currCol of columnNameList) {
+    let currAlarm: Alarm
+
+    // special case: Offline activity end is before offline activity 2 start and offline activity 2 end, 
+    // TODO: Fix excel sheet and THEN REMOVE this fix 
+    const lowerName = currCol.name.toLowerCase()
+    if (lowerName.includes("offline activity end")) {
+      currAlarm = {
+        idxStart: currCol.colIdx,
+        name: currCol.name.replace(/ (start|end)/i, ""),
+        start: rowValuesList[currCol.colIdx]
+      }
+      console.log("Found offline activity: ", currAlarm)
+      alarmList.push(currAlarm)
+      continue;
+    } else if (lowerName.includes("offline activity 2 start")) {
+      const currEndName = currCol.name.replace(/ 2 (start|end)/i, "")
+      console.log("Trying to find alarm with name: ", currEndName)
+      const foundAlarm = alarmList.find(findAlarm => findAlarm.name == currEndName)
+      if (foundAlarm != undefined) {
+        foundAlarm.idxEnd = currCol.colIdx
+        foundAlarm.end = rowValuesList[currCol.colIdx]
+      }
+      console.log("Found offline activity: ", foundAlarm)
+      continue
+    }
+    else if (lowerName.includes("offline activity 2 end")) {
+      continue
+    }
+    // End of fix
+
+    if (currCol.name.toLowerCase().includes("start")) {
+      currAlarm = {
+        idxStart: currCol.colIdx,
+        name: currCol.name.replace(/ (start|end)/i, ""),
+        start: rowValuesList[currCol.colIdx]
+      }
+      alarmList.push(currAlarm)
+
+    } else if (currCol.name.toLowerCase().includes("end")) {
+      // for the end of an alarm we have to find the corresponding start, in this case by name since idx could be further apart
+      const currEndName = currCol.name.replace(/ (start|end)/i, "")
+      const foundAlarm = alarmList.find(findAlarm => findAlarm.name == currEndName)
+      if (foundAlarm != undefined) {
+        foundAlarm.idxEnd = currCol.colIdx
+        // foundAlarm.end = await getCellValueByColIdx(page, currCol.colIdx, userID)
+        foundAlarm.end = rowValuesList[currCol.colIdx]
+      }
+      else {
+        throw new Error("Got " + currEndName + " end but no start");
+      }
+    }
+  }
+
+  return alarmList
+}
 
 
 async function main(): Promise<void> {
@@ -60,25 +221,44 @@ async function main(): Promise<void> {
   const page = await context.newPage();
 
   try {
-    /**
-     * Open Google.
-     *
-     * "domcontentloaded" means Playwright continues once the initial HTML
-     * document has been loaded and parsed.
-     */
 
+    // const userID = '10109046'
+    const userID = '52159052'
     await page.goto(process.env.SPREADSHEET_URL ?? "");
-    await page.getByRole('button', { name: 'Miercoles 27/05/' }).click({ timeout: 500 });
-    await page.keyboard.press('Control+f', { delay: 200 });
-    await page.keyboard.type('10109046', { delay: 200});
-    await page.keyboard.press('Escape',{ delay: 200});
-    await page.keyboard.press('ArrowRight');
-    // 
+    await page.getByRole('button', { name: 'Viernes 29/05/' }).click();
+
+    const columnNameList = await getAlarmNameIdxList(page) // list with the column names and indices
+    // Todo: Search all columns for start and end of each name
+    const rowValuesList = await getRowValues(page, userID, columnNameList.length) // Array with all the values of one specific userID
+    console.log("This is the rowValues: ", rowValuesList)
+    const alarmList = await fillAlarmStartEnd(rowValuesList, columnNameList, userID)
+    console.log("Now have list with idx and names: ", alarmList)
+
     // Select the text that appeared at the top bar which really exists in the DOM
     // The text isnide of the cells has to be accessed over the Google API with authorization of the organization
     // By selecting the top bar we circumvent the issue
-    const text = await page.locator('#t-formula-bar-input').textContent()
-    console.log(text)
+        /**
+     * Make sure the data directory exists.
+     */
+    const dataDir = path.join(process.cwd(), "data");
+    await mkdir(dataDir, {
+      recursive: true,
+    });
+
+    /**
+     * Save the result as JSON.
+     */
+    const outputPath = path.join(dataDir, "google-results.json");
+
+    await writeFile(outputPath, JSON.stringify(alarmList, null, 2), "utf-8");
+
+    console.log(`Saved results to ${outputPath}`);
+  } finally {
+    /**
+     * Always close the browser, even if scraping fails.
+     */
+    await browser.close();
+  }
     return
 
     /// old
@@ -192,28 +372,7 @@ async function main(): Promise<void> {
       console.log(`${index + 1}. ${title}`);
     }
 
-    /**
-     * Make sure the data directory exists.
-     */
-    const dataDir = path.join(process.cwd(), "data");
-    await mkdir(dataDir, {
-      recursive: true,
-    });
 
-    /**
-     * Save the result as JSON.
-     */
-    const outputPath = path.join(dataDir, "google-results.json");
-
-    await writeFile(outputPath, JSON.stringify(output, null, 2), "utf-8");
-
-    console.log(`Saved results to ${outputPath}`);
-  } finally {
-    /**
-     * Always close the browser, even if scraping fails.
-     */
-    await browser.close();
-  }
 }
 
 /**
