@@ -35,6 +35,23 @@ type Alarm = {
  */
 const searchQuery =
   process.env.SEARCH_QUERY ?? "playwright typescript tutorial";
+
+const delay = 50
+/**
+ * Selects the text that appeared at the top bar upon selecting a cell. 
+ * If no value was found throws error "Could not read cell value" [TODO Find out at what cell we were for error log]
+ * 
+ * The text inside of cells would have to be accessed over the Google API with authorization of the organization.
+ * By selecting the cell and reading the top bar we avoid the Google Api
+ * @param page 
+ */
+
+async function getCurrCellData(page: Page): Promise<string> {
+  const result = await page.locator('#t-formula-bar-input').textContent();
+  if (!result)
+    throw new Error("Could not read cell value");
+  return result;
+}
 /**
  * Helper function meant to search next valid alarm name and index in the current spreadsheet
  * also increases passed Idx
@@ -46,32 +63,32 @@ const searchQuery =
  * Name is the value of the cell if it changed, if it didn't change returns null
  */
 async function getCellValueByIdx(page: Page, currIdx: number, maxColIdx?: number): Promise<{ cellValue: string | null, idx: number }> {
-  const oldValue = await page.locator('#t-formula-bar-input').textContent()
-  await page.keyboard.press('ArrowRight', { delay: 75 });
-  const newValue = await page.locator('#t-formula-bar-input').textContent()
+  const oldValue = await getCurrCellData(page);
+  await page.keyboard.press('ArrowRight', { delay: delay });
+  const newValue = await getCurrCellData(page);
   if ((oldValue === newValue && maxColIdx == undefined) || currIdx === maxColIdx) {
     if (maxColIdx != undefined)
-      console.log("Got the maxColIdx: ", maxColIdx)
+      console.log("Got the maxColIdx: ", maxColIdx);
     return { cellValue: null, idx: currIdx };
   }
   return { cellValue: newValue, idx: currIdx + 1 }
 }
 
 /**
- * Retrieves all alarm names and their corresponding start idx
+ * Retrieves all column names and their corresponding idx
  * 
- * returns array of object with name and colIdx where that name was found
+ * returns promise with array of object with name and idx 
  */
-async function getAlarmNameIdxList(page: Page): Promise<{ name: string, colIdx: number }[]> {
+async function getColumns(page: Page): Promise<{ name: string, idx: number }[]> {
   let currIdx = 0
   let currCellName: string | null = ""
-  type ColumnName = { name: string, colIdx: number }
+  type ColumnName = { name: string, idx: number }
   const columnNameList: ColumnName[] = []
 
-  await page.keyboard.press('Control+f', { delay: 200 });
-  await page.keyboard.type('WinID', { delay: 200 });
-  await page.keyboard.press('Escape', { delay: 200 });
-  const text = await page.locator('#t-formula-bar-input').textContent()
+  await page.keyboard.press('Control+f', { delay: delay });
+  await page.keyboard.type('WinID', { delay: delay });
+  await page.keyboard.press('Escape', { delay: delay });
+  const text = await getCurrCellData(page)
 
   if (text != "WinID")
     throw new Error("Couldn't find first line with 'WinID' to select the alarm names");
@@ -83,7 +100,7 @@ async function getAlarmNameIdxList(page: Page): Promise<{ name: string, colIdx: 
       break;
     currIdx = result.idx
 
-    const currCol: ColumnName = { name: currCellName, colIdx: currIdx }
+    const currCol: ColumnName = { name: currCellName, idx: currIdx }
     columnNameList.push(currCol)
     console.log("Added ", currCellName, "to list")
   }
@@ -100,11 +117,10 @@ async function getAlarmNameIdxList(page: Page): Promise<{ name: string, colIdx: 
  */
 async function getRowValues(page: Page, userID: string, maxColIdx: number): Promise<string[]> {
 
-  const delay = 100
   await page.keyboard.press('Control+f', { delay: delay });
   await page.keyboard.type(userID, { delay: delay });
   await page.keyboard.press('Escape', { delay: delay });
-  const text = await page.locator('#t-formula-bar-input').textContent()
+  const text = await getCurrCellData(page)
   if (text != userID)
     throw new Error("Couldn't find the given UserID: " + userID);
   const resultArray = [userID]
@@ -127,7 +143,7 @@ async function getRowValues(page: Page, userID: string, maxColIdx: number): Prom
  * @param userID 
  * @returns Promise od Array with correctly formatted and filled Alarm objects
  */
-async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name: string; colIdx: number; }[], userID: string): Promise<Alarm[]> {
+async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name: string; idx: number; }[], userID: string): Promise<Alarm[]> {
   const alarmList: Alarm[] = []
 
   for (const currCol of columnNameList) {
@@ -138,11 +154,10 @@ async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name
     const lowerName = currCol.name.toLowerCase()
     if (lowerName.includes("offline activity end")) {
       currAlarm = {
-        idxStart: currCol.colIdx,
+        idxStart: currCol.idx,
         name: currCol.name.replace(/ (start|end)/i, ""),
-        start: rowValuesList[currCol.colIdx]
+        start: rowValuesList[currCol.idx]
       }
-      console.log("Found offline activity: ", currAlarm)
       alarmList.push(currAlarm)
       continue;
     } else if (lowerName.includes("offline activity 2 start")) {
@@ -150,8 +165,8 @@ async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name
       console.log("Trying to find alarm with name: ", currEndName)
       const foundAlarm = alarmList.find(findAlarm => findAlarm.name == currEndName)
       if (foundAlarm != undefined) {
-        foundAlarm.idxEnd = currCol.colIdx
-        foundAlarm.end = rowValuesList[currCol.colIdx]
+        foundAlarm.idxEnd = currCol.idx
+        foundAlarm.end = rowValuesList[currCol.idx]
       }
       console.log("Found offline activity: ", foundAlarm)
       continue
@@ -163,9 +178,9 @@ async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name
 
     if (currCol.name.toLowerCase().includes("start")) {
       currAlarm = {
-        idxStart: currCol.colIdx,
+        idxStart: currCol.idx,
         name: currCol.name.replace(/ (start|end)/i, ""),
-        start: rowValuesList[currCol.colIdx]
+        start: rowValuesList[currCol.idx]
       }
       alarmList.push(currAlarm)
 
@@ -174,9 +189,9 @@ async function fillAlarmStartEnd(rowValuesList: string[], columnNameList: { name
       const currEndName = currCol.name.replace(/ (start|end)/i, "")
       const foundAlarm = alarmList.find(findAlarm => findAlarm.name == currEndName)
       if (foundAlarm != undefined) {
-        foundAlarm.idxEnd = currCol.colIdx
+        foundAlarm.idxEnd = currCol.idx
         // foundAlarm.end = await getCellValueByColIdx(page, currCol.colIdx, userID)
-        foundAlarm.end = rowValuesList[currCol.colIdx]
+        foundAlarm.end = rowValuesList[currCol.idx]
       }
       else {
         throw new Error("Got " + currEndName + " end but no start");
@@ -223,20 +238,58 @@ async function main(): Promise<void> {
   try {
 
     // const userID = '10109046'
+
     const userID = '52159052'
-    await page.goto(process.env.SPREADSHEET_URL ?? "");
-    await page.getByRole('button', { name: 'Viernes 29/05/' }).click();
+    
+    async function openSchedulePageByDate(page: Page, date: Date = new Date()) {
+      await page.goto(process.env.SPREADSHEET_URL ?? "");
+      const dayNumber = date.getDate()
+      const monthNumber = date.getMonth()
+      const dayWord = date.toLocaleDateString('es-ES', { weekday: "long" })
+      const yearNumber = date.getFullYear()
+      const formattedDate = `${dayWord} ${dayNumber}/${monthNumber}/`
 
-    const columnNameList = await getAlarmNameIdxList(page) // list with the column names and indices
-    // Todo: Search all columns for start and end of each name
-    const rowValuesList = await getRowValues(page, userID, columnNameList.length) // Array with all the values of one specific userID
-    console.log("This is the rowValues: ", rowValuesList)
+      let button = await page.getByRole('button', { name: formattedDate , exact: false})
+      if (! await button.count()) {
+        console.log("Didnt find given date! Please select from the following available dates: ")
+
+        const toolbarLocator = page.locator(".docs-sheet-container-bar [role='button']");
+        const tabs = await toolbarLocator.all()
+        console.log(tabs)
+        for (const tab of tabs) {
+          const text = await tab.locator(".docs-sheet-tab-name").innerText()
+          if( text.includes(String(yearNumber)) )
+            console.log(text)
+        }
+        const gottenFirstDate =  await tabs[1].locator(".docs-sheet-tab-name").innerText()
+        const newDate = new Date()
+        const newDayNumber = String(newDate.getDate()).padStart(2,'0')
+        const newMonthNumber = String(newDate.getMonth() + 1).padStart(2,'0')
+        const newDayWord = newDate.toLocaleDateString('es-ES', { weekday: "long" })
+        const newFormattedDate = `${newDayWord} ${newDayNumber}/${newMonthNumber}/`
+        button = await page.getByRole('button', { name: gottenFirstDate , exact: false})
+        console.log("Didnt get button with given date, new button found: ", gottenFirstDate)
+      }
+      await button.click({delay: 100});
+    }
+
+    await openSchedulePageByDate(page, new Date(2026,4, 30))
+
+    /**
+     * Get columnnames from Excelfile
+     */
+    const columnNameList = await getColumns(page)
+    /**
+     * Get rowValues for specific User 
+     */
+    const rowValuesList = await getRowValues(page, userID, columnNameList.length)
+    /**
+     * Use retrieved information to format and create Alarm Array with necesary alarm-information
+     * See type Alarm
+     */
     const alarmList = await fillAlarmStartEnd(rowValuesList, columnNameList, userID)
-    console.log("Now have list with idx and names: ", alarmList)
 
-    // Select the text that appeared at the top bar which really exists in the DOM
-    // The text isnide of the cells has to be accessed over the Google API with authorization of the organization
-    // By selecting the top bar we circumvent the issue
+
         /**
      * Make sure the data directory exists.
      */
