@@ -10,7 +10,9 @@ export type Alarm = {
     start?: string | null;
     end?: string | null;
 }
-
+/**
+ * Default delay to be used in any input or click action on the page, so the browser can load
+ */
 const delay = 50
 /**
  * Selects the text that appeared at the top bar upon selecting a cell. 
@@ -49,6 +51,51 @@ export async function getCellValueByIdx(page: Page, currIdx: number, maxColIdx?:
     return { cellValue: newValue, idx: currIdx + 1 }
 }
 
+
+
+
+export async function getValidDates(page: Page): Promise<Date[]> {
+    const yearNumber = String(new Date().getFullYear())
+    const toolbarLocator = page.locator(".docs-sheet-container-bar [role='button']");
+    const tabs = await toolbarLocator.all()
+    const resultList: Date[] = []
+    for (const tab of tabs) {
+        const text = await tab.locator(".docs-sheet-tab-name").innerText()
+        const currMatch = text.match(/(\d+)\/(\d+)\/(\d+)/)
+        if (currMatch) {
+            const day = Number(currMatch[1])
+            const month = Number(currMatch[2]) - 1
+            const year = Number(currMatch[3])
+            const newDate = new Date(year,month,day)
+            resultList.push(newDate)
+        }
+    }
+    return resultList
+}
+
+/**
+ * opens the spreadsheet page at the given date.
+ * If Date doesnt exist throws error
+ * @param page 
+ * @param date 
+ */
+export async function openSchedulePageByDate(page: Page, date: Date = new Date()) {
+    // Create the correct format of the search date
+    const dayNumber = String(date.getDate()).padStart(2,"0")
+    const monthNumber = String(date.getMonth() + 1).padStart(2,"0")
+    const dayWord = date.toLocaleDateString('es-ES', { weekday: "long" })
+    const yearNumber = date.getFullYear() 
+    // e.g 'lunes 01/06/2026' or 'Lunes ...'
+    const formattedDate = `${dayWord} ${dayNumber}/${monthNumber}/${yearNumber}` 
+
+    let buttonLocator = await page.getByRole('button', { name: formattedDate, exact: false })
+    // Check if button exists, if not, the given date doesn't exist and we need to give the user the existing options to open the site
+    if (! await buttonLocator.count()) {
+        throw new Error("Could not find the button with date: " + formattedDate + " on Spreadsheet");
+    }
+    await buttonLocator.click({ delay: delay });
+}
+
 /**
  * Retrieves all column names and their corresponding idx
  * 
@@ -77,10 +124,8 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
 
         const currCol: ColumnName = { name: currCellName, idx: currIdx }
         columnNameList.push(currCol)
-        console.log("Added ", currCellName, "to list")
     }
 
-    console.log("Now have list with names and idxs: ", columnNameList)
     return columnNameList
 }
 
@@ -103,7 +148,6 @@ export async function getRowValues(page: Page, userID: string, maxColIdx: number
     while (true) {
         const result = await getCellValueByIdx(page, currIdx, maxColIdx)
         const currCellName = result.cellValue
-        console.log("Have current result with idx: ", result, "  ", currIdx)
         if (currCellName === null)
             break;
         currIdx = result.idx
@@ -111,6 +155,7 @@ export async function getRowValues(page: Page, userID: string, maxColIdx: number
     }
     return resultArray
 }
+
 /**
  * Create array of Alarm objects corresponding to the names in columnNameList and their userID specific time values in rowValuesList
  * @param rowValuesList Array with the userID specific information in the same order as the colIdx's of columnNameList
@@ -125,7 +170,8 @@ export async function getAlarmList(rowValuesList: string[], columnNameList: { na
         let currAlarm: Alarm
 
         // special case: Offline activity end is before offline activity 2 start and offline activity 2 end, 
-        // TODO: Fix excel sheet and THEN REMOVE this fix 
+        // TODO: FIX excel sheet and THEN REMOVE this fix 
+
         const lowerName = currCol.name.toLowerCase()
         if (lowerName.includes("offline activity end")) {
             currAlarm = {
@@ -137,21 +183,21 @@ export async function getAlarmList(rowValuesList: string[], columnNameList: { na
             continue;
         } else if (lowerName.includes("offline activity 2 start")) {
             const currEndName = currCol.name.replace(/ 2 (start|end)/i, "")
-            console.log("Trying to find alarm with name: ", currEndName)
             const foundAlarm = alarmList.find(findAlarm => findAlarm.name == currEndName)
             if (foundAlarm != undefined) {
                 foundAlarm.idxEnd = currCol.idx
                 foundAlarm.end = rowValuesList[currCol.idx]
             }
-            console.log("Found offline activity: ", foundAlarm)
             continue
         }
         else if (lowerName.includes("offline activity 2 end")) {
+            // This column is currently never being used
             continue
         }
         // End of fix
 
         if (currCol.name.toLowerCase().includes("start")) {
+            // create new Alarm if column name has "start" 
             currAlarm = {
                 idxStart: currCol.idx,
                 name: currCol.name.replace(/ (start|end)/i, ""),
@@ -160,66 +206,18 @@ export async function getAlarmList(rowValuesList: string[], columnNameList: { na
             alarmList.push(currAlarm)
 
         } else if (currCol.name.toLowerCase().includes("end")) {
-            // for the end of an alarm we have to find the corresponding start, in this case by name since idx could be further apart
+            // Find corresponding start by name and add data
             const currEndName = currCol.name.replace(/ (start|end)/i, "")
             const foundAlarm = alarmList.find(findAlarm => findAlarm.name == currEndName)
             if (foundAlarm != undefined) {
                 foundAlarm.idxEnd = currCol.idx
-                // foundAlarm.end = await getCellValueByColIdx(page, currCol.colIdx, userID)
                 foundAlarm.end = rowValuesList[currCol.idx]
             }
             else {
-                throw new Error("Got " + currEndName + " end but no start");
+                throw new Error("Got " + currEndName + " alarm end but no start");
             }
         }
     }
 
     return alarmList
-}
-
-export async function getValidDates(page: Page): Promise<Date[]> {
-    const yearNumber = String(new Date().getFullYear())
-    const toolbarLocator = page.locator(".docs-sheet-container-bar [role='button']");
-    const tabs = await toolbarLocator.all()
-    const resultList: Date[] = []
-    console.log(tabs)
-    for (const tab of tabs) {
-        const text = await tab.locator(".docs-sheet-tab-name").innerText()
-        const currMatch = text.match(/(\d+)\/(\d+)\/(\d+)/)
-        if (currMatch) {
-            console.log("Found text: ", text)
-            console.log("Found regex: ", currMatch)
-            const day = Number(currMatch[1])
-            const month = Number(currMatch[2]) - 1
-            const year = Number(currMatch[3])
-            const newDate = new Date(year,month,day)
-
-            resultList.push(newDate)
-        }
-
-    }
-    return resultList
-}
-
-/**
- * opens the spreadsheet page at the given date.
- * If Date doesnt exist throws error
- * @param page 
- * @param date 
- */
-export async function openSchedulePageByDate(page: Page, date: Date = new Date()) {
-    // Create the correct format of the search date
-    const dayNumber = String(date.getDate()).padStart(2,"0")
-    const monthNumber = String(date.getMonth() + 1).padStart(2,"0")
-    const dayWord = date.toLocaleDateString('es-ES', { weekday: "long" })
-    const yearNumber = date.getFullYear()
-    const formattedDate = `${dayWord} ${dayNumber}/${monthNumber}/`
-    // const formattedDate = "Lunes 01/06/2026"
-    console.log("Trying to find button with date: ", formattedDate)
-    let buttonLocator = await page.getByRole('button', { name: formattedDate, exact: false })
-    // Check if button exists, if not, the given date doesn't exist and we need to give the user the existing options to open the site
-    if (! await buttonLocator.count()) {
-        throw new Error("Could not find the button with date: " + formattedDate + " on Spreadsheet");
-    }
-    await buttonLocator.click({ delay: 100 });
 }
