@@ -3,7 +3,7 @@ import "dotenv/config";
 import { chromium, Page } from "playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { getAlarmList, getColumns, getRowValues, getValidDates, openSchedulePageByDate } from "./utils/scrapperUtils"
+import { Alarm, getAlarmList, getColumns, getRowValues, getValidDates, openSchedulePageByDate } from "./utils/scrapperUtils"
 
 // Testdata TODO read from frontend
 const userID = '10109046'
@@ -16,11 +16,12 @@ const userID = '10109046'
  *
  * If the env variable is missing, we use a fallback query.
  */
-const searchQuery =
-  process.env.SEARCH_QUERY ?? "playwright typescript tutorial";
+const searchURL =
+process.env.SPREADSHEET_URL ?? "wrong";
 
+console.log("In scraper.ts and have searchQuery: ", searchURL)
 
-async function main(): Promise<void> {
+export async function getAlarmData(): Promise<Alarm[]> {
 
   /**
    * Launch Chromium.
@@ -51,12 +52,13 @@ async function main(): Promise<void> {
    * A page is one browser tab.
    */
   const page = await context.newPage();
-
+  let alarmList = []
   try {
 
 
     // Navigate to the spreadsheet site
     await page.goto(process.env.SPREADSHEET_URL ?? "",{
+    // await page.goto(searchQuery,{
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
@@ -82,8 +84,7 @@ async function main(): Promise<void> {
      * Use retrieved information to format and create Alarm Array with necesary alarm-information
      * See type Alarm
      */
-    const alarmList = await getAlarmList(rowValuesList, columnNameList, userID)
-
+    alarmList = await getAlarmList(rowValuesList, columnNameList, userID)
     const dataDir = path.join(process.cwd(), "data");
     await mkdir(dataDir, {
       recursive: true,
@@ -101,6 +102,7 @@ async function main(): Promise<void> {
      */
     await browser.close();
   }
+  return alarmList
 }
 
 /**
@@ -110,7 +112,7 @@ async function main(): Promise<void> {
  * - print the error
  * - exit with status code 1
  */
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exit(1);
-});
+// main().catch((error: unknown) => {
+//   console.error(error);
+//   process.exit(1);
+// });

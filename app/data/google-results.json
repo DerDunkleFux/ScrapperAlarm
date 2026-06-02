@@ -1,0 +1,65 @@
+[
+  {
+    "idxStart": 2,
+    "name": "Schedule",
+    "start": "4:30 AM",
+    "idxEnd": 3,
+    "end": "2:00 PM"
+  },
+  {
+    "idxStart": 4,
+    "name": "Break 1",
+    "start": "6:00 AM",
+    "idxEnd": 5,
+    "end": "6:15 AM"
+  },
+  {
+    "idxStart": 6,
+    "name": "Lunch",
+    "start": "8:30 AM",
+    "idxEnd": 7,
+    "end": "9:30 AM"
+  },
+  {
+    "idxStart": 8,
+    "name": "AP 1",
+    "start": "7:30 AM",
+    "idxEnd": 9,
+    "end": "7:35 AM"
+  },
+  {
+    "idxStart": 10,
+    "name": "AP 2",
+    "start": "11:00 AM",
+    "idxEnd": 11,
+    "end": "11:05 AM"
+  },
+  {
+    "idxStart": 12,
+    "name": "Break 2",
+    "start": "12:00 PM",
+    "idxEnd": 13,
+    "end": "12:15 PM"
+  },
+  {
+    "idxStart": 15,
+    "name": "Extra break",
+    "start": "",
+    "idxEnd": 16,
+    "end": ""
+  },
+  {
+    "idxStart": 17,
+    "name": "Training time",
+    "start": "5:30 AM",
+    "idxEnd": 18,
+    "end": "6:00 AM"
+  },
+  {
+    "idxStart": 19,
+    "name": "Offline Activity",
+    "start": "",
+    "idxEnd": 20,
+    "end": ""
+  }
+]

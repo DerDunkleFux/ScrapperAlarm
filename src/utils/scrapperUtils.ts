@@ -13,7 +13,7 @@ export type Alarm = {
 /**
  * Default delay to be used in any input or click action on the page, so the browser can load
  */
-const delay = 50
+const delay = 100
 /**
  * Selects the text that appeared at the top bar upon selecting a cell. 
  * If no value was found throws error "Could not read cell value" [TODO Find out at what cell we were for error log]

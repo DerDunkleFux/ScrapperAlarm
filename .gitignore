@@ -7,3 +7,4 @@ test-results
 .DS_Store
 .env.example
 test.py
+AlarmScraper.zip
