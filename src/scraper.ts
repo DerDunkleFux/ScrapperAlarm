@@ -78,6 +78,7 @@ async function main(): Promise<void> {
 
     // Opens the given date in the spreadsheet
     // Use first valid date for debug 
+    console.log("Got validDatesList: ", validDates)
     await openSchedulePageByDate(page, validDates[0])
 
     /**
