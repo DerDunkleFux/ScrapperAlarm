@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { Page } from "playwright";
 
 /**
@@ -43,7 +44,23 @@ export async function getCurrCellData(page: Page): Promise<string> {
 export async function getCellValueByIdx(page: Page, currIdx: number, maxColIdx?: number): Promise<{ cellValue: string | null, idx: number }> {
     const oldValue = await getCurrCellData(page);
     await page.keyboard.press('ArrowRight', { delay: delay });
-    const newValue = await getCurrCellData(page);
+    let newValue = await getCurrCellData(page);
+    console.log("While reading cell newValue at index: ", currIdx, " got: ", newValue)
+
+    const maxAttempts = 6;
+    let attempts = 0;
+
+    // If it's still reading the old value, give the page a few milliseconds to update
+    while (newValue === oldValue && attempts < maxAttempts && maxColIdx == undefined) {
+        console.log("Got the same value: ", newValue)
+        await page.waitForTimeout(300); // Small, efficient increments
+        await page.keyboard.press('ArrowRight', { delay: delay });
+        newValue = await getCurrCellData(page);
+        attempts++;
+        console.log("Tried reading the same cell: ", newValue, ". And this many Attempts: ", attempts)
+
+    }
+
     if ((oldValue === newValue && maxColIdx == undefined) || currIdx === maxColIdx) {
         // return null when oldValue == newValue or if maximum Column Id is given
         return { cellValue: null, idx: currIdx };
@@ -82,8 +99,11 @@ export async function getValidDates(page: Page): Promise<Date[]> {
 export async function openSchedulePageByDate(page: Page, date: Date = new Date()) {
     // Create the correct format of the search date
     const dayNumber = String(date.getDate()).padStart(2,"0")
-    const monthNumber = String(date.getMonth() + 1).padStart(2,"0")
-    const dayWord = date.toLocaleDateString('es-ES', { weekday: "long" })
+    const monthNumber = String(date.getMonth() + 1).padStart(2, "0")
+    
+    const rawDay = date.toLocaleDateString('es-ES', { weekday: "long" })
+    // change accent marks (à,è,ì...) to regular letters to be read (mièrcoles => miercoles)
+    const dayWord = rawDay.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     const yearNumber = date.getFullYear() 
     // e.g 'lunes 01/06/2026' or 'Lunes ...'
     const formattedDate = `${dayWord} ${dayNumber}/${monthNumber}/${yearNumber}` 
@@ -109,15 +129,27 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
 
     await page.keyboard.press('Control+f', { delay: delay });
     await page.keyboard.type('WinID', { delay: delay });
-    await page.keyboard.press('Escape', { delay: delay });
-    const text = await getCurrCellData(page)
 
+    // wait for system to finish typing and then verify the escape press
+    let attempt = 0
+    const maxAttempts = 10
+    let pressedEscape = false
+    while (!pressedEscape && attempt < maxAttempts) {
+        await page.keyboard.press('Escape', { delay: delay });
+        // Look for the ctrl + f overlay container
+        pressedEscape =  !await page.locator('.docs-findinput-container, .waffle-find-and-replace-dialog').isVisible().catch(() => false);
+        attempt++;
+        console.log(`Did we register the escape? : ${pressedEscape ? "Yes" : "no"}` )
+        }
+    const text = await getCurrCellData(page)
+    console.log("In getColumns got first text: ", text)
     if (text != "WinID")
         throw new Error("Couldn't find first line with 'WinID' to select the alarm names");
 
     while (true) {
         const result = await getCellValueByIdx(page, currIdx)
         currCellName = result.cellValue
+        console.log("Result from getCellValue: ", currCellName)
         if (currCellName === null)
             break;
         currIdx = result.idx
@@ -125,7 +157,7 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
         const currCol: ColumnName = { name: currCellName, idx: currIdx }
         columnNameList.push(currCol)
     }
-
+    console.log("About to return columnNameList: ", columnNameList)
     return columnNameList
 }
 

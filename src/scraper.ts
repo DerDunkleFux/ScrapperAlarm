@@ -85,6 +85,7 @@ export async function getAlarmData(): Promise<Alarm[]> {
      * See type Alarm
      */
     alarmList = await getAlarmList(rowValuesList, columnNameList, userID)
+    console.log("Got alarmList: ", alarmList)
     const dataDir = path.join(process.cwd(), "data");
     await mkdir(dataDir, {
       recursive: true,
