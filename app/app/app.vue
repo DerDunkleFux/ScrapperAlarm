@@ -1,5 +1,5 @@
-<template>
-  <!-- <div class="m-10 p-6 bg-teal-900 text-teal-400 font-bold rounded-lg shadow-xl border border-teal-500">
+<!-- <div class="m-10 p-6 bg-teal-900 text-teal-400 font-bold rounded-lg shadow-xl border border-teal-500">
+    <template>
     <h1>In app.vue!</h1>
   </div>
   <div class="text-3xl font-bold underline">
@@ -8,7 +8,15 @@
   <!-- <div>
     <NuxtRouteAnnouncer />
     <NuxtWelcome />
-  </div> -->
   <NuxtPage />
 
+</template>
+  </div> -->
+
+  <template>
+  <NuxtLayout>
+    <v-app :theme="'dark'">
+      <NuxtPage />
+    </v-app>
+  </NuxtLayout>
 </template>
