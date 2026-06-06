@@ -5,7 +5,7 @@
   <div class="text-3xl font-bold underline">
     Tailwind CSS is successfully running!
   </div> -->
-  <!-- <div>
+<!-- <div>
     <NuxtRouteAnnouncer />
     <NuxtWelcome />
   <NuxtPage />
@@ -13,10 +13,10 @@
 </template>
   </div> -->
 
-  <template>
-  <NuxtLayout>
-    <v-app :theme="'dark'">
+<template>
+  <v-app :theme="'dark'">
+    <NuxtLayout>
       <NuxtPage />
-    </v-app>
-  </NuxtLayout>
+    </NuxtLayout>
+  </v-app>
 </template>

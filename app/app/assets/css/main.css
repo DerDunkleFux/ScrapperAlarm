@@ -1,1 +1,17 @@
 @import "tailwindcss";
+/* app/assets/css/main.css */
+/* Your modular layout configuration files */
+/* @import './_variables.css';
+@import './_layouts.css';
+@import './_components.css'; */
+
+:root {
+    /* To use on the main content if working with header and footer and want to avoid scrolling */
+    /* --main-with-header-footer: calc(100vh - var(--v-layout-top) - var(--v-layout-bottom)); */
+    --main-with-header-footer: calc(100vh - 104px);
+    
+}
+
+@theme {
+    --color-alarm-safe: #22c55e;
+}
