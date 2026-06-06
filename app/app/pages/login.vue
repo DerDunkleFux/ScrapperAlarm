@@ -1,18 +1,18 @@
 <template>
-    <div  class="d-flex flex-column min-h-(--main-with-header-footer) flex-grow-1 bg-blue-grey-darken-4 ">
+    <div class="d-flex flex-column min-h-(--main-with-header-footer) flex-grow-1 bg-blue-grey-darken-4 ">
         <v-container fluid class="d-flex flex-column fill-height align-center flex-grow-1">
-            <v-row justify="center" align-content="center" class="fill-height w-5/6 flex-grow-1">
-                <v-col class="text-center w-full " cols="12" >
-                    <v-card class="elevation-6 rounded-lg d-flex flex-column pa-6 " color=""
-                        variant="outlined">
+            <v-row justify="center" align-content="center" class="fill-height w-1/2 flex-grow-1">
+                <v-col class="text-center w-full " cols="12">
+                    <v-card class="elevation-6 rounded-lg d-flex flex-column pa-6 " color="" variant="outlined">
                         <v-card-item class="text-center flex-grow-0">
                             <v-card-title class="text-h5 font-weight-bold">Welcome to your alarms!</v-card-title>
                             <v-card-subtitle>Enter your ID and select a date to access the dashboard</v-card-subtitle>
                         </v-card-item>
 
                         <v-card-text class="mt-6 d-flex flex-column justify-between flex-grow-1">
-                            <v-form class="d-flex flex-column justify-space-between fill-height"
-                                :disabled="formDisabled" validate-on="lazy">
+                            <v-form fast-fail v-model="formValue"
+                                class="d-flex flex-column justify-space-between fill-height"
+                                @submit.prevent="handleFormSubmit">
                                 <v-spacer></v-spacer>
                                 <!-- User ID Field -->
                                 <div class="w-100 flex-grow-1" offset="2">
@@ -27,15 +27,16 @@
                                 <div class="w-100">
 
                                     <v-row v-if="dates.length">
-                                        <v-col v-for="date in dates" cols="12" sm="6">
-                                            <v-btn color="primary" block size="large" @click="clickDate(date, $event)"
-                                                submit>
+                                        <v-col v-for="date in dates" cols="12" md="6">
+                                            <!-- to="/alarm/{{ userID }}/" -->
+                                            <v-btn class="date-btn-wrap" type="submit" color="primary" block size="large"
+                                                @click="chosenDate = date">
                                                 {{ date }}
                                             </v-btn>
                                         </v-col>
                                     </v-row>
                                     <div v-else>
-                                        <v-btn :active="false">No valid date found, contact it</v-btn>
+                                        <v-btn loading :active="false">If doesn't load, contact IT please</v-btn>
                                     </div>
                                 </div>
                                 <v-spacer></v-spacer>
@@ -51,10 +52,10 @@
                     <div class="bg-alarm-safe text-white pa-2 rounded"> ehhhm new color?</div>
                 </v-col>
             </v-row> -->
-                   <!-- Use this to insert a new line -->
+            <!-- Use this to insert a new line -->
 
 
-<!-- 
+            <!-- 
           <v-row justify="end" align="end" class="flex-grow-0"> 
                 <v-col class="text-end">
                     <div> about </div>
@@ -64,33 +65,52 @@
     </div>
 </template>
 
+<style>
+.date-btn-wrap .v-btn__content {
+  white-space: normal !important;
+}
+</style>
 <script setup lang="ts">
 
 import type { Mouse } from 'playwright'
 
-const formDisabled = ref(false)
+const formValue = ref<any>(null)
+const chosenDate: Ref<string> = ref("")
+
 const userIDRules = [
-    (value: string | any[]) => {
+    (value: string | any) => {
         console.log("Testing rule in userID with value: ", value)
         if (value?.length >= 3) return true
         return 'First name must be at least 3 characters.'
     },
 ]
-// const userID = ref("")
-function onUserIDChange(e: String) {
+const userID = ref("")
+function onUserIDChange(e: string) {
     console.log("Wrote userID and got value: ")
     console.log(e)
-}
-function realoadDates() {
-    console.log("Should reload dates")
+    userID.value = e
 }
 
-function clickDate(date: string, event: MouseEvent) {
-    console.log('Clicked date text:', date)
 
-    // Now you have complete access to the event properties
-    console.log('Native event target:', event.target)
+async function handleFormSubmit(e: Event) {
+    console.log("Handling submit: ", e);
+
+    if (formValue.value) {
+        console.log("The form passed!")
+        console.log("Navigating to /alarm with params: userID: ", userID.value, " date: ", chosenDate.value)
+        await navigateTo({
+            path: '/alarm',
+            query: {
+                userID: userID.value,
+                date: chosenDate.value
+            }
+        })
+    } else {
+        console.log("Form failed")
+    }
 }
+
+
 /**
  * 
  * @returns Promise of Date array or empty array if none found
