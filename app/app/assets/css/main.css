@@ -12,6 +12,10 @@
     
 }
 
+.date-btn-wrap .v-btn__content {
+  white-space: normal !important;
+}
+
 @theme {
     --color-alarm-safe: #22c55e;
 }

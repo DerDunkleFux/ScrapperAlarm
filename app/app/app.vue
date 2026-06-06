@@ -15,7 +15,7 @@
 
 <template>
   <v-app :theme="'dark'">
-    <NuxtLayout>
+  <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
   </v-app>

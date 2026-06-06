@@ -1,21 +1,26 @@
 <template>
-    <div class="d-flex flex-column min-h-(--main-with-header-footer) flex-grow-1 bg-blue-grey-darken-4 ">
-        <v-container fluid class="d-flex flex-column fill-height align-center flex-grow-1">
+    <!-- <div class="d-flex flex-column min-h-(--main-with-header-footer) flex-grow-1  "> -->
+        <div class="d-flex flex-column fill-height align-center flex-grow-1 bg-blue-grey-darken-4">
             <v-row justify="center" align-content="center" class="fill-height w-1/2 flex-grow-1">
                 <v-col class="text-center w-full " cols="12">
-                    <v-card class="elevation-6 rounded-lg d-flex flex-column pa-6 " color="" variant="outlined">
-                        <v-card-item class="text-center flex-grow-0">
+                    <div> Now you see me</div>
+                     <v-card class="elevation-6 rounded-lg d-flex flex-column pa-6 " color="" variant="outlined">
+                       <v-card-item class="text-center flex-grow-0">
                             <v-card-title class="text-h5 font-weight-bold">Welcome to your alarms!</v-card-title>
                             <v-card-subtitle>Enter your ID and select a date to access the dashboard</v-card-subtitle>
                         </v-card-item>
 
-                        <v-card-text class="mt-6 d-flex flex-column justify-between flex-grow-1">
+                       <v-card-text class="mt-6 d-flex flex-column justify-between flex-grow-1">
                             <v-form fast-fail v-model="formValue"
                                 class="d-flex flex-column justify-space-between fill-height"
                                 @submit.prevent="handleFormSubmit">
-                                <v-spacer></v-spacer>
+                                <v-spacer></v-spacer> 
+
+
                                 <!-- User ID Field -->
-                                <div class="w-100 flex-grow-1" offset="2">
+
+
+                            <!--    <div class="w-100 flex-grow-1" offset="2">
                                     <v-text-field @update:model-value="onUserIDChange" label="User ID"
                                         :rules="userIDRules" prepend-inner-icon="mdi-account" variant="outlined"
                                         class="mb-4" />
@@ -24,11 +29,10 @@
                                 </div>
                                 <v-spacer></v-spacer>
 
-                                <div class="w-100">
+                                 <div class="w-100">
 
                                     <v-row v-if="dates.length">
                                         <v-col v-for="date in dates" cols="12" md="6">
-                                            <!-- to="/alarm/{{ userID }}/" -->
                                             <v-btn class="date-btn-wrap" type="submit" color="primary" block size="large"
                                                 @click="chosenDate = date">
                                                 {{ date }}
@@ -37,10 +41,10 @@
                                     </v-row>
                                     <div v-else>
                                         <v-btn loading :active="false">If doesn't load, contact IT please</v-btn>
-                                    </div>
-                                </div>
-                                <v-spacer></v-spacer>
-                            </v-form>
+                                    </div> 
+                                </div> -->
+                                <v-spacer></v-spacer>  
+                            </v-form> 
                         </v-card-text>
 
                     </v-card>
@@ -60,20 +64,19 @@
                 <v-col class="text-end">
                     <div> about </div>
                 </v-col> -->
-        </v-container>
+        </div>
 
-    </div>
+    <!-- </div> -->
 </template>
 
-<style>
-.date-btn-wrap .v-btn__content {
-  white-space: normal !important;
-}
-</style>
+
 <script setup lang="ts">
 
 import type { Mouse } from 'playwright'
-
+definePageMeta({
+  layout
+  : 'default',
+})
 const formValue = ref<any>(null)
 const chosenDate: Ref<string> = ref("")
 

@@ -1,5 +1,5 @@
 <template>
-  <v-footer class="bg-blue-grey-darken-2 px-1 ">
+  <v-footer app class="bg-blue-grey-darken-2 px-1 ">
     <!-- <v-container class="mx-0 max-w-full w-full"> -->
     <v-container class="pa-0" >
       <v-row justify="end" align="baseline">
