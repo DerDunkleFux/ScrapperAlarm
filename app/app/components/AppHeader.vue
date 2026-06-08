@@ -1,5 +1,6 @@
 <template>
-    <v-app-bar app :elevation="1">
+    <v-app-bar :app="true">
+        <!-- :elevation="1" -->
         <template #prepend>
             <v-app-bar-nav-icon icon="mdi-clock"> </v-app-bar-nav-icon>
         </template>
@@ -7,18 +8,25 @@
             Interactions-Alarms
         </v-app-bar-title>
         <template #append>
-            <!-- <div class="mx-5"> -->
-
-            <v-btn>
-                <NuxtLink to="/"> Home </NuxtLink>
-            </v-btn>
-            <v-btn>
+            <v-btn to="/"> Home </v-btn>
+            <v-btn v-if="!userIdCookie">
                 <NuxtLink to="/login"> Login </NuxtLink>
             </v-btn>
-            <!-- <v-spacer class="w-2"></v-spacer>
-                <!-- <v-btn prepend-icon="mdi-update" @click="realoadDates()">Reload Dates</v-btn> -->
-            <!-- </div> -->
+
+            <v-btn v-else @click="logout()">
+                Logout
+            </v-btn>
+            <!-- <v-btn prepend-icon="mdi-update" @click="realoadDates()">Reload Dates</v-btn> -->
         </template>
     </v-app-bar>
 
 </template>
+
+<script setup lang="ts">
+
+const userIdCookie = useCookie("userID")
+function logout() {
+    userIdCookie.value = null
+    navigateTo("/login")
+}
+</script>

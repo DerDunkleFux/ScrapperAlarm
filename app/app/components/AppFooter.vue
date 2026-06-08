@@ -1,8 +1,8 @@
 <template>
-  <v-footer app class="bg-blue-grey-darken-2 px-1 ">
+  <v-footer :app="true" absolute class="bg-blue-grey-darken-2 px-1" >
     <!-- <v-container class="mx-0 max-w-full w-full"> -->
-    <v-container class="pa-0" >
-      <v-row justify="end" align="baseline">
+    <v-container class="pa-0 w-100" >
+      <v-row justify="end" align="baseline" class="w-100">
         <v-col>
           <div class="text-label-small pa-2">
             <v-icon icon="mdi-registered-trademark"></v-icon>

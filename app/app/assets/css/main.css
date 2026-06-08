@@ -16,6 +16,9 @@
   white-space: normal !important;
 }
 
+.v-footer {
+    max-height: fit-content;
+}
 @theme {
     --color-alarm-safe: #22c55e;
 }
