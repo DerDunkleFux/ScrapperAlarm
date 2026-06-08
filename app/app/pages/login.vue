@@ -10,20 +10,24 @@
                             <v-card-subtitle>Enter your ID and select a date to access the dashboard</v-card-subtitle>
                         </v-card-item>
 
-                       <v-card-text class="mt-6 d-flex flex-column justify-between flex-grow-1">
-                            <v-form fast-fail v-model="formValue"
+                       <v-card-text class="d-flex flex-column justify-between flex-grow-1">
+                            <v-form validate-on="submit" v-model="formValue"
                                 class="d-flex flex-column justify-space-between fill-height"
                                 @submit.prevent="handleFormSubmit">
-                                <v-spacer></v-spacer> 
-
-
+                                
+                                
                                 <!-- User ID Field -->
-
-
-                            <!--    <div class="w-100 flex-grow-1" offset="2">
+                                
+                                <!-- if no userIdCookie -->
+                                <div v-if="!userIdCookie"class="w-100 flex-grow-1" offset="2">
+                                   <v-spacer></v-spacer> 
                                     <v-text-field @update:model-value="onUserIDChange" label="User ID"
                                         :rules="userIDRules" prepend-inner-icon="mdi-account" variant="outlined"
                                         class="mb-4" />
+                                </div>
+                                <!-- If userIdCookie is set -->
+                                <div v-else class="w-100 flex-grow-1" offset="2">
+                                   <div class="text-headline-medium text-bold mb-4"> Welcome user with id: {{  userIdCookie }}</div> 
                                 </div>
                                 <div class="text-start font-thin mb-2 italic"> Please select a valid date
                                 </div>
@@ -42,7 +46,7 @@
                                     <div v-else>
                                         <v-btn loading :active="false">If doesn't load, contact IT please</v-btn>
                                     </div> 
-                                </div> -->
+                                </div> 
                                 <v-spacer></v-spacer>  
                             </v-form> 
                         </v-card-text>
@@ -80,6 +84,7 @@ definePageMeta({
 const formValue = ref<any>(null)
 const chosenDate: Ref<string> = ref("")
 
+const userIdCookie = useCookie("userID", { maxAge: 60 * 60 * 12, secure: process.env.NODE_ENV === 'production' })
 const userIDRules = [
     (value: string | any) => {
         console.log("Testing rule in userID with value: ", value)
@@ -87,24 +92,23 @@ const userIDRules = [
         return 'First name must be at least 3 characters.'
     },
 ]
-const userID = ref("")
+const userID = ref(userIdCookie.value || "")
 function onUserIDChange(e: string) {
     console.log("Wrote userID and got value: ")
     console.log(e)
     userID.value = e
 }
 
+async function handleFormSubmit(e: any) {
+    const event = await e
 
-async function handleFormSubmit(e: Event) {
-    console.log("Handling submit: ", e);
-
-    if (formValue.value) {
+    if (event.valid) {
         console.log("The form passed!")
-        console.log("Navigating to /alarm with params: userID: ", userID.value, " date: ", chosenDate.value)
+        console.log("Navigating to /alarm with params: date: ", chosenDate.value)
+        userIdCookie.value = userID.value
         await navigateTo({
             path: '/alarm',
             query: {
-                userID: userID.value,
                 date: chosenDate.value
             }
         })
