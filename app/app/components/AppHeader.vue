@@ -2,7 +2,7 @@
     <v-app-bar :app="true">
         <!-- :elevation="1" -->
         <template #prepend>
-            <v-app-bar-nav-icon icon="mdi-clock"> </v-app-bar-nav-icon>
+            <v-app-bar-nav-icon to="/" icon="mdi-clock"> </v-app-bar-nav-icon>
         </template>
         <v-app-bar-title>
             Interactions-Alarms

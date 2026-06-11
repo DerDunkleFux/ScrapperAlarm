@@ -66,7 +66,7 @@ async function openSpreadsheet(): Promise<{ "page": Page, "browser" : Browser }>
     return result
 
   } 
-export async function getAlarmData(): Promise<Alarm[]> {
+export async function getAlarmData(dateString: string): Promise<Alarm[]> {
 
   let alarmList = []
   const openResult = await openSpreadsheet();
@@ -74,14 +74,18 @@ export async function getAlarmData(): Promise<Alarm[]> {
   const browser = openResult.browser;
   try {
     // Search in page valid dates 
-    const validDates = await getValidDates(page);
+    // const validDates = await getValidDates(page);
 
+    // formatting dateString
+    const selectedDate = new Date(dateString)
+    console.log("Got dateString while getting AlarmData: ",dateString)
+    console.log("Got selectedDate: \n", selectedDate)
     // TODO Ask user to choose from one of these dates then continue
     // For now just use the first valid date
 
     // Opens the given date in the spreadsheet
     // Use first valid date for debug 
-    await openSchedulePageByDate(page, validDates[0])
+    await openSchedulePageByDate(page, selectedDate)
 
     /**
      * Get columnnames from Excelfile
@@ -95,20 +99,21 @@ export async function getAlarmData(): Promise<Alarm[]> {
      * Use retrieved information to format and create Alarm Array with necesary alarm-information
      * See type Alarm
      */
-    alarmList = await getAlarmList(rowValuesList, columnNameList, userID)
+    alarmList = await getAlarmList(rowValuesList, columnNameList, userID, selectedDate)
+    // TODO If user starts at 23:00 and ends turn at next day their userID appears two times, read again the userID to check if that is the case
     console.log("Got alarmList: ", alarmList)
-    const dataDir = path.join(process.cwd(), "data");
-    await mkdir(dataDir, {
-      recursive: true,
-    });
+    // const dataDir = path.join(process.cwd(), "data");
+    // await mkdir(dataDir, {
+    //   recursive: true,
+    // });
 
-    // Save the result as JSON.
-    const outputPath = path.join(dataDir, "google-results.json");
+    // // Save the result as JSON.
+    // const outputPath = path.join(dataDir, "google-results.json");
 
-    await writeFile(outputPath, JSON.stringify(alarmList, null, 2), "utf-8");
+    // await writeFile(outputPath, JSON.stringify(alarmList, null, 2), "utf-8");
 
-    console.log(`Saved results to ${outputPath}`);
-  } finally {
+    // console.log(`Saved results to ${outputPath}`);
+  }  finally {
     /**
      * Always close the browser, even if scraping fails.
      */

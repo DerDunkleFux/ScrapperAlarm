@@ -35,24 +35,61 @@
 
 <script setup lang="ts">
 import type { Alarm } from '@backend/utils/scrapperUtils';
-import { v } from 'vue-router/dist/index-BQLwgiyK.js';
 import AlarmCard from '~/components/AlarmCard.vue';
-
+// const route = useRoute()
+const formattedDate = formatQueryDate(useRoute().query.date)
+console.log("fetching with date: ", formattedDate)
+const response = await useFetch('/api/scrape/alarms', {
+    query: {
+            // date: new Date().toJSON()
+            date: formattedDate.toJSON()
+        }
+})
+console.log("got response from in frontend: ", response.data.value.data)
 const userName = ref("Manuel L Jackson")
-const route = useRoute()
 const currDate = new Date()
 console.log("CurrDate in Alarm: ", currDate)
-const alarms: Alarm[] = [
+
+const alarms: Ref<Alarm[]> = ref([
     { name: "Alarm 1", start: "8:00 AM", end: "9:00 AM"  , startDate: currDate },
     { name: "Alarm 2", start: "10:15 AM", end: "11:30 AM", startDate: currDate },
     { name: "Alarm 3", start: "12:00 PM", end: "01:00 PM", startDate: currDate },
     { name: "Alarm 4", start: "12:00 PM", end: "01:00 PM", startDate: currDate },
     { name: "Alarm 5", start: "02:00 PM", end: "03:00 PM", startDate: currDate },
     { name: "Alarm 6", start: "02:00 PM", end: "03:00 PM", startDate: currDate },
-]
+])
+alarms.value = response.data.value.data
 
-console.log("got route: ", route)
-onMounted((val: any) => {
+console.log("Route params: ", useRoute().query)
+onMounted(async (val: any) => {
+    console.log("Should fetch")
+// const response = await $fetch('/api/scrape/alarms', {
+//     query: {
+//             date: new Date().toJSON()
+//         }
+//     })
+
     console.log("Mounted site, got something: ", val)
 })
+
+/**
+ * Returns a dateobject based on query datastring like 'Domingo 13/06/2026'
+ * @param dateString 
+ */
+function formatQueryDate(dateString: any = null): Date {
+    //Todo
+
+    if (!dateString) throw new Error("No Date Param was recieved, go back to main...");
+    console.log("formatting date param: ", dateString)
+    const currMatch = dateString.match(/(\d+)\/(\d+)\/(\d+)/)
+    let newDate
+    if (!currMatch) {
+        throw new Error("Date param doesnt match format [dayName-ES] dd/mm/yyyy");
+    }
+    const day = Number(currMatch[1])
+    const month = Number(currMatch[2]) - 1
+    const year = Number(currMatch[3])
+    return new Date(year, month, day)
+
+}
 </script>

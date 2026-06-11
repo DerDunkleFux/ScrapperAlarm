@@ -6,8 +6,7 @@
      </div> -->
 <!-- inset-shadow-sm/50 inset-shadow-sm/50 inset-shadow-white -->
     <div class="rounded-lg ">
- <!-- :hover="isHover"  -->
-        <v-card :variant="cardVariant" class="rounded-lg">
+        <v-card :variant="cardVariant" :hover="isHover" class="rounded-lg">
             <v-card-item class="bg-slate-800" prepend-icon="mdi-clock" :title="name">
                 <template v-slot:append>
                     <div class="text-body-small px-2">
@@ -96,7 +95,6 @@ const alarmStart: Date = new Date()
 // TODO get date from each alarm from backend for day, month in case different than today
 // Currently only check if alarm hours & minutes is before currentDate set for next day, else set for same day
 const testDate = props.startDate
-console.log("testDate in alarmCard: ", testDate)
 function formatTime(s: string): { hours: Number, minutes: Number } {
     let hours = 0
     let minutes = 0
@@ -108,8 +106,6 @@ function formatTime(s: string): { hours: Number, minutes: Number } {
         hours = Number(s.replace(" ", "").replace(/pm/i, "").replace(/:(\d+)/, ""))
         minutes = Number(s.replace(" ", "").replace(/pm/i, "").replace(/(\d+):/, ""))
     }
-    console.log("Got hours: ", hours)
-    console.log("Got minutes: ", minutes)
     return { hours, minutes }
 }
 </script>
