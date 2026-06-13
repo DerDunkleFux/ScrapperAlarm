@@ -28,71 +28,98 @@
                 <v-card-text class="pa-2 ">
 
                     <v-row class="text-nowrap">
-                        <!-- <v-col cols="12" sm="6" class="text-title-large text-center">
-                            <div>
-                                {{ start }}
-                            </div>
-                            <div class="text-title-small text-center">Start</div>
+
+                        <!-- Start time picker -->
+                        <v-col>
+                            <v-menu v-model="isStartMenuOpen" :persistent="false" :close-on-content-click="false">
+                                <template v-slot:activator="{ props: startMenuProps }">
+                                    <div class="cursor-pointer text-center text-5xl" v-bind="startMenuProps"
+                                        @click="onOpenTimePicker($event, startMenuProps.onClick, 'start')">
+                                        {{ startTime }}
+                                    </div>
+                                </template>
+                                <!-- @update:model-value="updateTime" -->
+                                <v-time-picker v-model="startTime" class="custom-compact-picker" rounded="xl">
+
+                                    <!-- <v-btn v-bind="menuProps" class="bg-success">Ok</v-btn> -->
+                                    <template #actions>
+                                        <v-row justify="end" class="center-text">
+                                            <v-col>
+                                                <v-btn size="large" id="menu-activator" class="bg-success">Ok</v-btn>
+                                            </v-col>
+                                            <v-col>
+                                                <v-btn size="large" class="bg-error"
+                                                    @click="cancelTimePicker">Cancel</v-btn>
+                                            </v-col>
+                                        </v-row>
+                                    </template>
+                                </v-time-picker>
+                            </v-menu>
                         </v-col>
-                        <v-col cols="12" sm="6" class="text-title-large text-center ">
-                            <div>
-                                {{ end }}
-                            </div>
-                            <div class="text-title-small text-center">End</div>
-                        </v-col> -->
 
-                        <v-col cols="12" md="6" class="text-title-large text-center">
-                            <div class="cursor-pointer">
-                                {{ start }}
-                                <v-menu activator="parent" :close-on-content-click="false">
-                                    <v-time-picker :model-value="startTime" @update:model-value="updateTime"
-                                        class="custom-compact-picker" rounded="xl">
-                                        <!-- <template #actions>
-                                            <v-row justify="space-evenly">
-                                                <v-col>
-                                                    <v-btn class="bg-success">Ok</v-btn>
-                                                </v-col>
-                                                <v-col>
-                                                    <v-btn class="">Cancel</v-btn>
-                                                </v-col>
-                                            </v-row>
-                                        </template> -->
-                                    </v-time-picker>
-                                </v-menu>
-                                {{ startTime }}
-                            </div>
+                        <!-- End time Picker -->
+                        <v-col >
+                            <v-menu v-model="isEndMenuOpen" :persistent="false" :close-on-content-click="false">
+                                <template v-slot:activator="{ props: endMenuProps }">
+                                    <div class="cursor-pointer text-center text-5xl" v-bind="endMenuProps"
+                                        @click="onOpenTimePicker($event, endMenuProps.onClick, 'end')">
+                                        {{ endTime }}
+                                    </div>
+                                </template>
+                                <!-- @update:model-value="updateTime" -->
+                                <v-time-picker v-model="endTime" class="custom-compact-picker" rounded="xl">
+
+                                    <!-- <v-btn v-bind="menuProps" class="bg-success">Ok</v-btn> -->
+                                    <template #actions>
+                                        <v-row justify="end" class="center-text">
+                                            <v-col>
+                                                <v-btn size="large" id="menu-activator" class="bg-success">Ok</v-btn>
+                                            </v-col>
+                                            <v-col>
+                                                <v-btn size="large" class="bg-error"
+                                                    @click="cancelTimePicker">Cancel</v-btn>
+                                            </v-col>
+                                        </v-row>
+                                    </template>
+                                </v-time-picker>
+                            </v-menu>
+                            <!-- {{ startTime }} -->
 
                         </v-col>
-                        <!-- <v-col cols="12" md="6" class="text-title-large text-center">
-                            <div class="cursor-pointer">
-                                {{ end }}
-                                <v-menu activator="parent" :close-on-content-click="false">
-                                    <v-time-picker :v-bind="endTime" @update:model-value="updateTime"
-                                        class="custom-compact-picker" rounded="xl">
-                                        <template #actions>
-                                            <v-row>
-                                                <v-col>
-                                                    <v-btn class="bg-success">Ok</v-btn>
-                                                </v-col>
-                                                <v-col>
-                                                    <v-btn class="bg-error">Cancel</v-btn>
-                                                </v-col>
-                                            </v-row>
-                                        </template>
-                                    </v-time-picker>
-                                </v-menu>
-                            </div>
+                        <!-- <div class="cursor-pointer">
+                            {{ end }}
+                            <v-menu activator="parent" :close-on-content-click="false">
+                                <v-time-picker :v-bind="endTime" @update:model-value="updateTime"
+                                    class="custom-compact-picker" rounded="xl">
+                                    <template #actions>
+                                        <v-row>
+                                            <v-col>
+                                                <v-btn class="bg-success">Ok</v-btn>
+                                            </v-col>
+                                            <v-col>
+                                                <v-btn class="bg-error">Cancel</v-btn>
+                                            </v-col>
+                                        </v-row>
+                                    </template>
+                                </v-time-picker>
+                            </v-menu>
+                        </div> -->
 
-                        </v-col> -->
                     </v-row>
 
                 </v-card-text>
-                <v-card-actions class="text-header-large d-flex justify-center">
-                    <v-btn class="bg-error">Delete</v-btn>
-                    <v-btn v-tooltip="activeTooltipProps" v-if="isActive" @click="toggleActive"
-                        class="bg-success">Active</v-btn>
-                    <v-btn v-tooltip="inactiveTooltipProps" v-else @click="toggleActive"
-                        class="bg-warning">Inactive</v-btn>
+                <v-card-actions class="text-header-large d-flex justify-center text-5xl">
+                    <v-row>
+                        <v-col>
+                            <v-btn block class="bg-error">Delete</v-btn>
+                        </v-col>
+                        <v-col>
+                            <v-btn block v-tooltip="activeTooltipProps" v-if="isActive" @click="toggleActive"
+                                class="bg-success text-5xl">Active</v-btn>
+                            <v-btn block v-tooltip="inactiveTooltipProps" v-else @click="toggleActive"
+                                class="bg-warning">Inactive</v-btn>
+                        </v-col>
+                    </v-row>
                 </v-card-actions>
             </div>
         </v-card>
@@ -108,7 +135,7 @@
 }
 </style>
 <script setup lang="ts">
-import { useVariant, type Variant } from 'vuetify/lib/composables/variant.mjs'
+import { type Variant } from 'vuetify/lib/composables/variant.mjs'
 const props = defineProps({
     name: { type: String, required: true },
     start: { type: String, required: true },
@@ -122,18 +149,17 @@ const props = defineProps({
 const cardVariant: Ref<Variant> = ref("text") //if inactive change to plain
 const isActive: Ref<boolean> = ref(true)
 const isHover: Ref<boolean> = ref(true)
-const isMenuOpen: Ref<boolean> = ref(false)
+const isStartMenuOpen: Ref<boolean> = ref(false)
+const isEndMenuOpen: Ref<boolean> = ref(false)
 // const startTime: Ref<any> = ref(props.start)
 const { hours: startHours, minutes: startMinutes } = formatTime(props.start)
 const { hours: endHours, minutes: endMinutes } = formatTime(props.end)
-console.log(startHours)
-console.log(endHours)
-const startString = String(startHours) + ":" + String(startMinutes).padStart(2,"0")
-const endString = String(endHours) + ":" + String(endMinutes).padStart(2,"0")
-console.log("StartString is: "+ startString)
-console.log("endString is: "+ endString)
+
+const startString = String(startHours).padStart(2, "0") + ":" + String(startMinutes).padStart(2, "0")
+const endString = String(endHours).padStart(2, "0") + ":" + String(endMinutes).padStart(2, "0")
 const startTime: Ref<any> = ref(startString)
-const endTime: Ref<any> = ref()
+console.log("startTime in mount is: ", startTime.value)
+const endTime: Ref<any> = ref(endString)
 // const endTime: Ref<any> = ref(String(endHours)+":"+String(endMinutes))
 const tooltipProps = {
     openDelay: 400,
@@ -147,6 +173,59 @@ const activeTooltipProps = {
     ...tooltipProps,
     text: "Deactivate"
 }
+
+const tmpTime: { time: String | null, source: "start" | "end" | null } = { time: null, source: null }
+
+function onOpenTimePicker(e: Event, propsFunction: Function, source: "start" | "end") {
+    console.log("opening time picker menu")
+    if (!e.target || !(e.target instanceof HTMLElement)) {
+        console.log("Event was no div with innerHTML time value!")
+        console.log(e)
+        return
+    }
+    console.log("Event.target.html: ", e.target.innerHTML)
+    console.log("Function: ", propsFunction)
+    if (source === "start") {
+        console.log("isStartMenuOpen? ", isStartMenuOpen.value)
+        // isStartMenuOpen.value = true
+        
+    } else {
+        console.log("isEndMenuOpen? ", isEndMenuOpen.value)
+    }
+
+    // TODO temporary save old ttime value and if it cancels revert to it, othgerwise save to persistent
+    tmpTime.time = e.target.innerHTML
+    tmpTime.source = source
+}
+
+function cancelTimePicker(e: Event) {
+    console.log("Should close and cancel menu")
+    e.stopPropagation(); // since closing the v-menu with the v-model, and without the menu props, the event propagation has to be stopped manually
+       if (tmpTime.source === "start") {
+           console.log("closing isStartMenuOpen: ", isStartMenuOpen.value)
+           isStartMenuOpen.value = false
+           console.log("closed isStartMenuOpen: ", isStartMenuOpen.value)
+        // isStartMenuOpen.value = true
+        
+    } else {
+           console.log("closing isEndMenuOpen: ", isEndMenuOpen.value)
+           isEndMenuOpen.value = false
+           console.log("closed isEndMenuOpen: ", isEndMenuOpen.value)
+    }
+
+    if (tmpTime.source === "start") {
+        console.log("should change time from: ", startTime.value)
+        startTime.value = tmpTime.time
+        console.log("Have resettet time to: ", startTime.value)
+    } else if (tmpTime.source === "end") {
+        endTime.value = tmpTime.time
+    }
+}
+
+function confirmTimePicker() {
+
+}
+
 
 function toggleActive() {
     console.log("Toggling active")
@@ -163,6 +242,9 @@ function updateTime(e: any) {
     console.log("updated time: ", e)
 }
 //  Alarm sounding logic
+function formatDisplayTIme(s: string) {
+
+}
 
 function formatTime(s: string): { hours: Number, minutes: Number } {
     let hours = 0

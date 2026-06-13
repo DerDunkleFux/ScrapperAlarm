@@ -160,7 +160,7 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
         { timeout: 4000 }
     ).catch(() => console.log("Warning: Formula bar wait timed out, attempting escape anyway."));
     const text = await getCurrCellData(page)
-    console.log("In getColumns got first text: ", text)
+    // console.log("In getColumns got first text: ", text)
     if (text != "WinID")
         throw new Error("Couldn't find first line with 'WinID' to select the alarm names");
 
@@ -175,7 +175,7 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
         const currCol: ColumnName = { name: currCellName, idx: currIdx }
         columnNameList.push(currCol)
     }
-    console.log("About to return columnNameList: ", columnNameList)
+    // console.log("About to return columnNameList: ", columnNameList)
     return columnNameList
 }
 
@@ -292,6 +292,6 @@ async function findPageElement(page: Page, domObject: string) {
     // await page.keyboard.press('Escape', { delay: delay });
     // Look for the ctrl + f overlay container
     const foundElement = !await page.locator('.docs-findinput-container, .waffle-find-and-replace-dialog').isVisible().catch(() => false);
-    foundElement ? console.log("Found the element: ", domObject) : console.log("Didnt find the element: ", domObject)
+    // foundElement ? console.log("Found the element: ", domObject) : console.log("Didnt find the element: ", domObject)
     return foundElement
 }

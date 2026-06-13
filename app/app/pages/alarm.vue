@@ -21,9 +21,9 @@
         <!-- All Alarms -->
 
 
-        <v-row justify="space-evenly" >
+        <v-row justify="start" >
             
-            <v-col cols="6" md="3" v-for="alarm in alarms" >
+            <v-col cols="12" md="6" v-for="alarm in alarms" >
                 <alarm-card :name="alarm.name" :end="alarm.end || ''" :start="alarm.start || ''" :start-date="formattedDate"></alarm-card>
                 <!-- </div> -->
             </v-col>
