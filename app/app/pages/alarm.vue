@@ -47,9 +47,8 @@ const response = await useFetch('/api/scrape/alarms', {
 })
 console.log("got response from in frontend: ", response.data.value.data)
 const userName = ref("Manuel L Jackson")
-const alarms: Ref<Alarm[]> = ref([
-  ])
-alarms.value = response.data.value.data
+const alarms: Ref<Alarm[]> = ref([])
+alarms.value = purgeAlarms(response.data.value.data)
 
 console.log("Route params: ", useRoute().query)
 onMounted(async (val: any) => {
@@ -74,5 +73,17 @@ function formatQueryDate(dateString: any = null): Date {
     const year = Number(currMatch[3])
     return new Date(Date.UTC(year, month, day))
 
+}
+/**
+ * Returns alarm array without empty start or end fields
+ * @param alarms alarm array to be purged
+ */
+function purgeAlarms(alarms: Alarm[]): Alarm[] {
+    const newAlarms = []
+    for (const alarm of alarms) {
+        if (alarm.start || alarm.end)
+            newAlarms.push(alarm)
+    }
+    return newAlarms
 }
 </script>
