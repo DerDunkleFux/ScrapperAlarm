@@ -10,7 +10,9 @@
             <v-card-item class="bg-slate-800" prepend-icon="mdi-clock" :title="name">
                 <template v-slot:append>
                     <div class="text-body-small px-2">
-                        {{ startDate?.getDate() }}/{{ startDate?.getMonth() }}/{{ startDate?.getFullYear() }}
+                       <!-- {{ startDate?.toLocaleDateString("es-ES", {weekday: "long"}) }} -->
+                       {{ startDate?.toLocaleDateString("es-ES", {timeZone:"UTC"})}}
+                        <!-- {{ startDate?.getDate() }}/{{ startDate?.getMonth() }}/{{ startDate?.getFullYear() }} -->
                     </div>
                 </template>
             </v-card-item>
@@ -58,6 +60,9 @@ const props = defineProps({
     name: { type: String, required: true },
     start: { type: String, required: true },
     end: { type: String, required: true },
+    /**
+     * date of this Alarm in UTC
+     */
     startDate: Date
 })
 
@@ -88,13 +93,12 @@ function toggleActive() {
     isHover.value = !isHover.value
 }
 //  Alarm sounding logic
-const currDate = new Date()
 const { hours: startHours, minutes: startMinutes } = formatTime(props.start)
 const { hours: endHours, minutes: endMinutes } = formatTime(props.end)
-const alarmStart: Date = new Date()
 // TODO get date from each alarm from backend for day, month in case different than today
 // Currently only check if alarm hours & minutes is before currentDate set for next day, else set for same day
 const testDate = props.startDate
+
 function formatTime(s: string): { hours: Number, minutes: Number } {
     let hours = 0
     let minutes = 0

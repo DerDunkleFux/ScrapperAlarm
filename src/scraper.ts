@@ -101,18 +101,12 @@ export async function getAlarmData(dateString: string): Promise<Alarm[]> {
      */
     alarmList = await getAlarmList(rowValuesList, columnNameList, userID, selectedDate)
     // TODO If user starts at 23:00 and ends turn at next day their userID appears two times, read again the userID to check if that is the case
-    console.log("Got alarmList: ", alarmList)
+
     // const dataDir = path.join(process.cwd(), "data");
     // await mkdir(dataDir, {
     //   recursive: true,
     // });
 
-    // // Save the result as JSON.
-    // const outputPath = path.join(dataDir, "google-results.json");
-
-    // await writeFile(outputPath, JSON.stringify(alarmList, null, 2), "utf-8");
-
-    // console.log(`Saved results to ${outputPath}`);
   }  finally {
     /**
      * Always close the browser, even if scraping fails.

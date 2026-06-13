@@ -99,11 +99,11 @@ export async function getValidDates(page: Page): Promise<Date[]> {
  */
 export async function openSchedulePageByDate(page: Page, date: Date = new Date()) {
     // Create the correct format of the search date
-    const dayNumber = String(date.getDate()).padStart(2, "0")
-    const monthNumber = String(date.getMonth() + 1).padStart(2, "0")
-    const yearNumber = date.getFullYear()
+    const dayNumber = String(date.getUTCDate()).padStart(2, "0")
+    const monthNumber = String(date.getUTCMonth() + 1).padStart(2, "0")
+    const yearNumber = date.getUTCFullYear()
 
-    const rawDay = date.toLocaleDateString('es-ES', { weekday: "long" })
+    const rawDay = date.toLocaleDateString('es-ES', { weekday: "long", timeZone: "UTC" }) 
     // change accent marks (à,è,ì...) to regular letters to be read (mièrcoles => miercoles)
     const dayWord = rawDay.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     // e.g 'lunes 01/06/2026' or 'Lunes ...'

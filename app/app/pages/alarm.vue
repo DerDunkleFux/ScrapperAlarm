@@ -24,7 +24,7 @@
         <v-row justify="space-evenly" >
             
             <v-col cols="6" md="3" v-for="alarm in alarms" >
-                <alarm-card :name="alarm.name" :end="alarm.end || ''" :start="alarm.start || ''" :start-date="currDate"></alarm-card>
+                <alarm-card :name="alarm.name" :end="alarm.end || ''" :start="alarm.start || ''" :start-date="formattedDate"></alarm-card>
                 <!-- </div> -->
             </v-col>
         </v-row>
@@ -35,40 +35,24 @@
 
 <script setup lang="ts">
 import type { Alarm } from '@backend/utils/scrapperUtils';
+import { isStringLiteral } from 'typescript';
 import AlarmCard from '~/components/AlarmCard.vue';
 // const route = useRoute()
 const formattedDate = formatQueryDate(useRoute().query.date)
 console.log("fetching with date: ", formattedDate)
 const response = await useFetch('/api/scrape/alarms', {
     query: {
-            // date: new Date().toJSON()
             date: formattedDate.toJSON()
         }
 })
 console.log("got response from in frontend: ", response.data.value.data)
 const userName = ref("Manuel L Jackson")
-const currDate = new Date()
-console.log("CurrDate in Alarm: ", currDate)
-
 const alarms: Ref<Alarm[]> = ref([
-    { name: "Alarm 1", start: "8:00 AM", end: "9:00 AM"  , startDate: currDate },
-    { name: "Alarm 2", start: "10:15 AM", end: "11:30 AM", startDate: currDate },
-    { name: "Alarm 3", start: "12:00 PM", end: "01:00 PM", startDate: currDate },
-    { name: "Alarm 4", start: "12:00 PM", end: "01:00 PM", startDate: currDate },
-    { name: "Alarm 5", start: "02:00 PM", end: "03:00 PM", startDate: currDate },
-    { name: "Alarm 6", start: "02:00 PM", end: "03:00 PM", startDate: currDate },
-])
+  ])
 alarms.value = response.data.value.data
 
 console.log("Route params: ", useRoute().query)
 onMounted(async (val: any) => {
-    console.log("Should fetch")
-// const response = await $fetch('/api/scrape/alarms', {
-//     query: {
-//             date: new Date().toJSON()
-//         }
-//     })
-
     console.log("Mounted site, got something: ", val)
 })
 
@@ -78,18 +62,17 @@ onMounted(async (val: any) => {
  */
 function formatQueryDate(dateString: any = null): Date {
     //Todo
-
-    if (!dateString) throw new Error("No Date Param was recieved, go back to main...");
+    console.log("Typeof dateString: ", typeof dateString === 'string')
+    if (!dateString || typeof dateString !== 'string') throw new Error("No Date Param was recieved, could not load alarms");
     console.log("formatting date param: ", dateString)
     const currMatch = dateString.match(/(\d+)\/(\d+)\/(\d+)/)
-    let newDate
     if (!currMatch) {
         throw new Error("Date param doesnt match format [dayName-ES] dd/mm/yyyy");
     }
     const day = Number(currMatch[1])
     const month = Number(currMatch[2]) - 1
     const year = Number(currMatch[3])
-    return new Date(year, month, day)
+    return new Date(Date.UTC(year, month, day))
 
 }
 </script>
