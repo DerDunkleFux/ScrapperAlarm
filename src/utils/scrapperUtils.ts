@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { Page } from "playwright";
 
 /**
@@ -9,11 +10,12 @@ export type Alarm = {
     idxEnd?: number;
     start?: string | null;
     end?: string | null;
+    startDate: Date;
 }
 /**
  * Default delay to be used in any input or click action on the page, so the browser can load
  */
-const delay = 50
+const delay = 100
 /**
  * Selects the text that appeared at the top bar upon selecting a cell. 
  * If no value was found throws error "Could not read cell value" [TODO Find out at what cell we were for error log]
@@ -43,7 +45,23 @@ export async function getCurrCellData(page: Page): Promise<string> {
 export async function getCellValueByIdx(page: Page, currIdx: number, maxColIdx?: number): Promise<{ cellValue: string | null, idx: number }> {
     const oldValue = await getCurrCellData(page);
     await page.keyboard.press('ArrowRight', { delay: delay });
-    const newValue = await getCurrCellData(page);
+    let newValue = await getCurrCellData(page);
+    // console.log("While reading cell newValue at index: ", currIdx, " got: ", newValue)
+
+    const maxAttempts = 3;
+    let attempts = 0;
+
+    // If it's still reading the old value, give the page a few milliseconds to update
+    while (newValue === oldValue && attempts < maxAttempts && maxColIdx == undefined) {
+        console.log("Got the same value: ", newValue)
+        await page.waitForTimeout(300); // Small, efficient increments
+        await page.keyboard.press('ArrowRight', { delay: delay });
+        newValue = await getCurrCellData(page);
+        attempts++;
+        // console.log("Tried reading the same cell: ", newValue, ". And this many Attempts: ", attempts)
+
+    }
+
     if ((oldValue === newValue && maxColIdx == undefined) || currIdx === maxColIdx) {
         // return null when oldValue == newValue or if maximum Column Id is given
         return { cellValue: null, idx: currIdx };
@@ -66,7 +84,7 @@ export async function getValidDates(page: Page): Promise<Date[]> {
             const day = Number(currMatch[1])
             const month = Number(currMatch[2]) - 1
             const year = Number(currMatch[3])
-            const newDate = new Date(year,month,day)
+            const newDate = new Date(year, month, day)
             resultList.push(newDate)
         }
     }
@@ -81,21 +99,24 @@ export async function getValidDates(page: Page): Promise<Date[]> {
  */
 export async function openSchedulePageByDate(page: Page, date: Date = new Date()) {
     // Create the correct format of the search date
-    const dayNumber = String(date.getDate()).padStart(2,"0")
-    const monthNumber = String(date.getMonth() + 1).padStart(2,"0")
-    const dayWord = date.toLocaleDateString('es-ES', { weekday: "long" })
-    const yearNumber = date.getFullYear() 
-    // e.g 'lunes 01/06/2026' or 'Lunes ...'
-    const formattedDate = `${dayWord} ${dayNumber}/${monthNumber}/${yearNumber}` 
+    const dayNumber = String(date.getUTCDate()).padStart(2, "0")
+    const monthNumber = String(date.getUTCMonth() + 1).padStart(2, "0")
+    const yearNumber = date.getUTCFullYear()
 
+    const rawDay = date.toLocaleDateString('es-ES', { weekday: "long", timeZone: "UTC" }) 
+    // change accent marks (à,è,ì...) to regular letters to be read (mièrcoles => miercoles)
+    const dayWord = rawDay.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // e.g 'lunes 01/06/2026' or 'Lunes ...'
+    const formattedDate = `${dayWord} ${dayNumber}/${monthNumber}/${yearNumber}`
+    console.log("Opening spreadsheet in day: ", formattedDate)
     let buttonLocator = await page.getByRole('button', { name: formattedDate, exact: false })
     // Check if button exists, if not, the given date doesn't exist and we need to give the user the existing options to open the site
     if (! await buttonLocator.count()) {
         throw new Error("Could not find the button with date: " + formattedDate + " on Spreadsheet");
     }
     await buttonLocator.click({ delay: delay });
+    await page.waitForTimeout(750);
 }
-
 /**
  * Retrieves all column names and their corresponding idx
  * 
@@ -107,17 +128,46 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
     type ColumnName = { name: string, idx: number }
     const columnNameList: ColumnName[] = []
 
-    await page.keyboard.press('Control+f', { delay: delay });
-    await page.keyboard.type('WinID', { delay: delay });
-    await page.keyboard.press('Escape', { delay: delay });
-    const text = await getCurrCellData(page)
+    const gridArea = page.locator('.grid-table-container, canvas').first();
+    await gridArea.click({ delay: delay });
 
+    await page.keyboard.press('Control+f', { delay: delay });
+    const findInput = page.locator('.docs-findinput-input, .waffle-find-and-replace-dialog input').first();
+    await findInput.waitFor({ state: 'visible', timeout: 5000 });
+    
+    // Clear any leftover data and type the keyword directly into the element field
+    await findInput.fill('');
+    await findInput.fill('WinID');
+    // await page.keyboard.type('WinID', { delay: delay });
+    await page.keyboard.press('Enter', { delay: delay });
+    // wait for system to finish typing and then verify the escape press
+    let attempt = 0
+    const maxAttempts = 10
+    let pressedEscape = false
+    while (!pressedEscape && attempt < maxAttempts) {
+        await page.keyboard.press('Escape', { delay: delay });
+        // Look for the ctrl + f overlay container
+        // pressedEscape =  !await page.locator('.docs-findinput-container, .waffle-find-and-replace-dialog').isVisible().catch(() => false);
+        pressedEscape = await findPageElement(page, '.docs-findinput-container, .waffle-find-and-replace-dialog')
+        attempt++;
+        console.log(`Did we register the escape? : ${pressedEscape ? "Yes" : "no"}`)
+    }
+    await page.waitForFunction(
+        () => {
+            const formulaBar = document.querySelector('#t-formula-bar-input');
+            return formulaBar && formulaBar.textContent === 'WinID';
+        },
+        { timeout: 4000 }
+    ).catch(() => console.log("Warning: Formula bar wait timed out, attempting escape anyway."));
+    const text = await getCurrCellData(page)
+    // console.log("In getColumns got first text: ", text)
     if (text != "WinID")
         throw new Error("Couldn't find first line with 'WinID' to select the alarm names");
 
     while (true) {
         const result = await getCellValueByIdx(page, currIdx)
         currCellName = result.cellValue
+        // console.log("Result from getCellValue: ", currCellName)
         if (currCellName === null)
             break;
         currIdx = result.idx
@@ -125,7 +175,7 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
         const currCol: ColumnName = { name: currCellName, idx: currIdx }
         columnNameList.push(currCol)
     }
-
+    // console.log("About to return columnNameList: ", columnNameList)
     return columnNameList
 }
 
@@ -137,8 +187,17 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
  */
 export async function getRowValues(page: Page, userID: string, maxColIdx: number): Promise<string[]> {
 
+    const gridArea = page.locator('.grid-table-container, canvas').first();
+    await gridArea.click({ delay: delay });
+
     await page.keyboard.press('Control+f', { delay: delay });
+    const findInput = page.locator('.docs-findinput-input, .waffle-find-and-replace-dialog input').first();
+    await findInput.waitFor({ state: 'visible', timeout: 5000 });
+    
+    // Clear any leftover data and type the keyword directly into the element field
+    await findInput.fill('');
     await page.keyboard.type(userID, { delay: delay });
+    await page.keyboard.press('Enter',{ delay: delay } )
     await page.keyboard.press('Escape', { delay: delay });
     const text = await getCurrCellData(page)
     if (text != userID)
@@ -163,7 +222,7 @@ export async function getRowValues(page: Page, userID: string, maxColIdx: number
  * @param userID 
  * @returns Promise od Array with correctly formatted and filled Alarm objects
  */
-export async function getAlarmList(rowValuesList: string[], columnNameList: { name: string; idx: number; }[], userID: string): Promise<Alarm[]> {
+export async function getAlarmList(rowValuesList: string[], columnNameList: { name: string; idx: number; }[], userID: string, selectedDate: Date): Promise<Alarm[]> {
     const alarmList: Alarm[] = []
 
     for (const currCol of columnNameList) {
@@ -177,7 +236,9 @@ export async function getAlarmList(rowValuesList: string[], columnNameList: { na
             currAlarm = {
                 idxStart: currCol.idx,
                 name: currCol.name.replace(/ (start|end)/i, ""),
-                start: rowValuesList[currCol.idx]
+                start: rowValuesList[currCol.idx],
+                startDate: selectedDate
+
             }
             alarmList.push(currAlarm)
             continue;
@@ -201,7 +262,8 @@ export async function getAlarmList(rowValuesList: string[], columnNameList: { na
             currAlarm = {
                 idxStart: currCol.idx,
                 name: currCol.name.replace(/ (start|end)/i, ""),
-                start: rowValuesList[currCol.idx]
+                start: rowValuesList[currCol.idx],
+                startDate: selectedDate
             }
             alarmList.push(currAlarm)
 
@@ -220,4 +282,16 @@ export async function getAlarmList(rowValuesList: string[], columnNameList: { na
     }
 
     return alarmList
+}
+/**
+ * In case param exists on DOM return true, else false
+ * 
+ *  */
+async function findPageElement(page: Page, domObject: string) {
+
+    // await page.keyboard.press('Escape', { delay: delay });
+    // Look for the ctrl + f overlay container
+    const foundElement = !await page.locator('.docs-findinput-container, .waffle-find-and-replace-dialog').isVisible().catch(() => false);
+    // foundElement ? console.log("Found the element: ", domObject) : console.log("Didnt find the element: ", domObject)
+    return foundElement
 }
