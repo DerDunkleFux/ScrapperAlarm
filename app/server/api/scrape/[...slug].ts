@@ -4,8 +4,8 @@ import { getAlarmData, getAvailableDates } from "../../../../src/scraper"
 /**
  * Used to catch the incoming api endpoint and redirect to correct function. eg. /api/scrape/alarms calls getAlarmData in src/scraper.ts
  */
-const handlers: Record<string, (arg?: any) => Promise<any>> = {
-  'alarms': (dateString: string) => getAlarmData(dateString),
+const handlers: Record<string, (arg?: any, args?: any) => Promise<any>> = {
+  'alarms': (dateString: string, userId: string) => getAlarmData(dateString, userId),
   'dates': getAvailableDates
 }
 
@@ -30,9 +30,10 @@ export default defineEventHandler(async (event): Promise<
         const alarmsQuery = getQuery(event)
         console.log("Got this alarmsQuery: ", alarmsQuery)
         const alarmsQueryDate = alarmsQuery.date as string
+        const alarmsQueryUserID = alarmsQuery.userID as string
         if (!alarmsQueryDate)
           throw new Error("Got no 'date' param in the /api/scrape/alarms/ request");
-        result = await handler(alarmsQueryDate)
+        result = await handler(alarmsQueryDate, alarmsQueryUserID)
         break;
       default:
         result = await handler()

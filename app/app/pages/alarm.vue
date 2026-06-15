@@ -40,19 +40,20 @@ import AlarmCard from '~/components/AlarmCard.vue';
 // const route = useRoute()
 const formattedDate = formatQueryDate(useRoute().query.date)
 console.log("fetching with date: ", formattedDate)
-// const response = await useFetch('/api/scrape/alarms', {
-//     query: {
-//             date: formattedDate.toJSON()
-//         }
-// })
-// console.log("got response from in frontend: ", response.data.value.data)
+const response = await useFetch('/api/scrape/alarms', {
+    query: {
+        date: formattedDate.toJSON(),
+        userID: useCookie("userID"), 
+        }
+})
+console.log("got response from in frontend: ", response.data.value.data)
 const userName = ref("Manuel L Jackson")
 const alarms: Ref<Alarm[]> = ref([])
 const currDate = new Date()
 const alarmCardRefs = ref<InstanceType<typeof AlarmCard>[]>([])
-// alarms.value = purgeAlarms(response.data.value.data)
+alarms.value = purgeAlarms(response.data.value.data)
 // testData
-alarms.value = [{ name: "test1", startDate: currDate, start: "19:08", end: "19:10"},{ name: "test2", startDate: currDate, start: "15:45", end: "16:05"}]
+// alarms.value = [{ name: "test1", startDate: currDate, start: "19:08", end: "19:10"},{ name: "test2", startDate: currDate, start: "15:45", end: "16:05"}]
 
 
 console.log("Route params: ", useRoute().query)
@@ -84,6 +85,9 @@ function formatQueryDate(dateString: any = null): Date {
  * @param alarms alarm array to be purged
  */
 function purgeAlarms(alarms: Alarm[]): Alarm[] {
+    if (!alarms ) {
+        throw new Error("No alarms found for your ID on that day");        
+    }
     const newAlarms = []
     for (const alarm of alarms) {
         if (alarm.start || alarm.end)

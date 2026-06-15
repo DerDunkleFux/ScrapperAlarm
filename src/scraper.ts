@@ -6,7 +6,7 @@ import path from "node:path";
 import { Alarm, getAlarmList, getColumns, getRowValues, getValidDates, openSchedulePageByDate } from "./utils/scrapperUtils"
 
 // Testdata TODO read from frontend
-const userID = '10109046'
+// const userID = '10109046'
 
 /**
  * Read the search query from .env.
@@ -66,7 +66,7 @@ async function openSpreadsheet(): Promise<{ "page": Page, "browser" : Browser }>
     return result
 
   } 
-export async function getAlarmData(dateString: string): Promise<Alarm[]> {
+export async function getAlarmData(dateString: string, userID: string): Promise<Alarm[]> {
 
   let alarmList = []
   const openResult = await openSpreadsheet();
@@ -80,6 +80,7 @@ export async function getAlarmData(dateString: string): Promise<Alarm[]> {
     const selectedDate = new Date(dateString)
     console.log("Got dateString while getting AlarmData: ",dateString)
     console.log("Got selectedDate: \n", selectedDate)
+    console.log("Got userID: ", userID)
     // TODO Ask user to choose from one of these dates then continue
     // For now just use the first valid date
 
