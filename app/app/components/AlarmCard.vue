@@ -31,17 +31,20 @@
 
                         <!-- Start time picker -->
                         <v-col>
-                            <v-menu v-model="isStartMenuOpen" :persistent="false" :close-on-content-click="false">
+                            <alarm-time-picker ref="startTimePickerRef" @time-picker-toggled="emit('childPickerToggled')"
+                                :time="startTime" :name="props.name">
+
+                            </alarm-time-picker>
+                            <!-- <v-menu v-model="isStartMenuOpen" :persistent="true" :close-on-content-click="false"
+                                :stick-to-target="true">
                                 <template v-slot:activator="{ props: startMenuProps }">
                                     <div class="cursor-pointer text-center text-5xl" v-bind="startMenuProps"
                                         @click="onOpenTimePicker($event, startMenuProps.onClick, 'start')">
                                         {{ startTime }}
                                     </div>
                                 </template>
-                                <!-- @update:model-value="updateTime" -->
                                 <v-time-picker v-model="startTime" class="custom-compact-picker" rounded="xl">
 
-                                    <!-- <v-btn v-bind="menuProps" class="bg-success">Ok</v-btn> -->
                                     <template #actions>
                                         <v-row justify="end" class="center-text">
                                             <v-col>
@@ -54,26 +57,29 @@
                                         </v-row>
                                     </template>
                                 </v-time-picker>
-                            </v-menu>
+                            </v-menu> -->
                         </v-col>
 
                         <!-- End time Picker -->
-                        <v-col >
-                            <v-menu v-model="isEndMenuOpen" :persistent="false" :close-on-content-click="false">
+                        <v-col>
+                             <alarm-time-picker ref="endTimePickerRef" @time-picker-toggled="emit('childPickerToggled')"
+                                :time="endTime" :name="props.name">
+
+                            </alarm-time-picker>
+                            <!-- <v-menu v-model="isEndMenuOpen" :persistent="true" :close-on-content-click="false">
                                 <template v-slot:activator="{ props: endMenuProps }">
                                     <div class="cursor-pointer text-center text-5xl" v-bind="endMenuProps"
                                         @click="onOpenTimePicker($event, endMenuProps.onClick, 'end')">
                                         {{ endTime }}
                                     </div>
                                 </template>
-                                <!-- @update:model-value="updateTime" -->
                                 <v-time-picker v-model="endTime" class="custom-compact-picker" rounded="xl">
 
-                                    <!-- <v-btn v-bind="menuProps" class="bg-success">Ok</v-btn> -->
                                     <template #actions>
                                         <v-row justify="end" class="center-text">
                                             <v-col>
-                                                <v-btn size="large" id="menu-activator" class="bg-success">Ok</v-btn>
+                                                <v-btn size="large" id="menu-activator" class="bg-success"
+                                                    @click="confirmTimePicker">Ok</v-btn>
                                             </v-col>
                                             <v-col>
                                                 <v-btn size="large" class="bg-error"
@@ -82,7 +88,7 @@
                                         </v-row>
                                     </template>
                                 </v-time-picker>
-                            </v-menu>
+                            </v-menu> -->
                             <!-- {{ startTime }} -->
 
                         </v-col>
@@ -126,7 +132,6 @@
     </div>
     <!-- </v-container> -->
 </template>
-
 <style scoped>
 .custom-compact-picker :deep {
     /* Scales the clock graphics cleanly to fit smaller dimensions */
@@ -134,7 +139,9 @@
     /* --time-picker-width: 140px !important */
 }
 </style>
+
 <script setup lang="ts">
+import { start } from 'node:repl'
 import { type Variant } from 'vuetify/lib/composables/variant.mjs'
 const props = defineProps({
     name: { type: String, required: true },
@@ -152,14 +159,20 @@ const isHover: Ref<boolean> = ref(true)
 const isStartMenuOpen: Ref<boolean> = ref(false)
 const isEndMenuOpen: Ref<boolean> = ref(false)
 // const startTime: Ref<any> = ref(props.start)
-const { hours: startHours, minutes: startMinutes } = formatTime(props.start)
-const { hours: endHours, minutes: endMinutes } = formatTime(props.end)
+const { hours: startHours, minutes: startMinutes } = getHoursMinutesFromString(props.start)
+const { hours: endHours, minutes: endMinutes } = getHoursMinutesFromString(props.end)
 
 const startString = String(startHours).padStart(2, "0") + ":" + String(startMinutes).padStart(2, "0")
 const endString = String(endHours).padStart(2, "0") + ":" + String(endMinutes).padStart(2, "0")
-const startTime: Ref<any> = ref(startString)
-console.log("startTime in mount is: ", startTime.value)
-const endTime: Ref<any> = ref(endString)
+/**
+ * Real value when this alarm starts, display and editable in format HH:MM
+ */
+const startTime: Ref<string> = ref(startString)
+
+/**
+ * Real value when this alarm ends, display and editable in format HH:MM
+ */
+const endTime: Ref<string> = ref(endString)
 // const endTime: Ref<any> = ref(String(endHours)+":"+String(endMinutes))
 const tooltipProps = {
     openDelay: 400,
@@ -174,7 +187,33 @@ const activeTooltipProps = {
     text: "Deactivate"
 }
 
-const tmpTime: { time: String | null, source: "start" | "end" | null } = { time: null, source: null }
+const tmpTime: { time: string | null, source: "start" | "end" | null } = { time: null, source: null }
+const startAlarmTimeoutId: Ref<NodeJS.Timeout | undefined> = ref()
+const endAlarmTimeoutId: Ref<NodeJS.Timeout | undefined> = ref()
+import AlarmTimePicker from '~/components/AlarmTimePicker.vue' // Adjust import path
+
+// 1. Declare the exact instance type shape exposed by your child component
+type TimePickerInstance = InstanceType<typeof AlarmTimePicker>
+const startTimePickerRef = ref<TimePickerInstance | null>()
+const endTimePickerRef = ref<TimePickerInstance | null>()
+onMounted(() => {
+
+    const { startAlarmId, endAlarmId } = activateAlarm()
+
+    startAlarmTimeoutId.value = startAlarmId
+    endAlarmTimeoutId.value = endAlarmId
+    // startTimePickerRef.value?.toggleTimePicker()
+})
+
+const emit = defineEmits<{
+    (e: 'childPickerToggled'): void
+}>()
+
+defineExpose({ toggleTimePickers, })
+function toggleTimePickers() {
+    startTimePickerRef.value?.toggleTimePicker()
+    endTimePickerRef.value?.toggleTimePicker()
+}
 
 function onOpenTimePicker(e: Event, propsFunction: Function, source: "start" | "end") {
     console.log("opening time picker menu")
@@ -188,47 +227,59 @@ function onOpenTimePicker(e: Event, propsFunction: Function, source: "start" | "
     if (source === "start") {
         console.log("isStartMenuOpen? ", isStartMenuOpen.value)
         // isStartMenuOpen.value = true
-        
+
     } else {
         console.log("isEndMenuOpen? ", isEndMenuOpen.value)
     }
 
-    // TODO temporary save old ttime value and if it cancels revert to it, othgerwise save to persistent
+    // TODO temporary save old time value and if it cancels revert to it, othgerwise save to persistent
     tmpTime.time = e.target.innerHTML
     tmpTime.source = source
+
+    // prevent all other clocks from being opened hmm
 }
 
 function cancelTimePicker(e: Event) {
     console.log("Should close and cancel menu")
     e.stopPropagation(); // since closing the v-menu with the v-model, and without the menu props, the event propagation has to be stopped manually
-       if (tmpTime.source === "start") {
-           console.log("closing isStartMenuOpen: ", isStartMenuOpen.value)
-           isStartMenuOpen.value = false
-           console.log("closed isStartMenuOpen: ", isStartMenuOpen.value)
-        // isStartMenuOpen.value = true
-        
+    if (tmpTime.source === "start") {
+        isStartMenuOpen.value = false
+        console.log("closed startMenu")
     } else {
-           console.log("closing isEndMenuOpen: ", isEndMenuOpen.value)
-           isEndMenuOpen.value = false
-           console.log("closed isEndMenuOpen: ", isEndMenuOpen.value)
+        isEndMenuOpen.value = false
+        console.log("closed endMenu")
     }
 
-    if (tmpTime.source === "start") {
-        console.log("should change time from: ", startTime.value)
+    if (tmpTime.source === "start" && tmpTime.time !== null) {
         startTime.value = tmpTime.time
-        console.log("Have resettet time to: ", startTime.value)
-    } else if (tmpTime.source === "end") {
+    } else if (tmpTime.source === "end" && tmpTime.time !== null) {
         endTime.value = tmpTime.time
     }
+
+    // clear tmp saved value to avoid accidental access
+    tmpTime.source = null
+    tmpTime.time = null
 }
 
 function confirmTimePicker() {
+    console.log("Confirm new time")
+    // clear tmp saved value to avoid accidental access
+    tmpTime.source = null
+    tmpTime.time = null
 
+    if (tmpTime.source === "start") {
+        isStartMenuOpen.value = false
+    } else {
+        isEndMenuOpen.value = false
+    }
+
+    deactivateAlarm() // Delete alarm with old startTime.value
+    activateAlarm() // Activate alarm with new value
+
+    //TODO when DB is implemented, update db alarm value with startTime.value and endTime.value
 }
 
-
 function toggleActive() {
-    console.log("Toggling active")
     if (cardVariant.value == "text") {
         cardVariant.value = "plain"
     } else {
@@ -241,12 +292,8 @@ function toggleActive() {
 function updateTime(e: any) {
     console.log("updated time: ", e)
 }
-//  Alarm sounding logic
-function formatDisplayTIme(s: string) {
 
-}
-
-function formatTime(s: string): { hours: Number, minutes: Number } {
+function getHoursMinutesFromString(s: string): { hours: number, minutes: number } {
     let hours = 0
     let minutes = 0
     hours = Number(s.replace(" ", "").replace(/am/i, "").replace(/pm/i, "").replace(/:(\d+)/, ""))
@@ -257,4 +304,40 @@ function formatTime(s: string): { hours: Number, minutes: Number } {
 
     return { hours, minutes }
 }
+
+
+
+
+function activateAlarm(): { startAlarmId: NodeJS.Timeout | undefined, endAlarmId: NodeJS.Timeout | undefined } {
+    const currTime = new Date()
+    //startTime is format HH:MM
+    const { hours: startHours, minutes: startMinutes } = getHoursMinutesFromString(startTime.value)
+    const alarmStartDate: Date = new Date(currTime.getFullYear(), currTime.getMonth(), currTime.getDate(), startHours, startMinutes)
+    const startDeltaTime = alarmStartDate.getTime() - currTime.getTime()
+    const alarmEndDate: Date = new Date(currTime.getFullYear(), currTime.getMonth(), currTime.getDate(), endHours, endMinutes)
+    const endDeltaTime = alarmEndDate.getTime() - currTime.getTime()
+    let startAlarmId = undefined
+    if (startDeltaTime >= 0) {
+        startAlarmId = setTimeout(() => {
+            console.log("Should sound alarm with startTime: ", alarmStartDate)
+            alert("Sounding your " + props.name + " start")
+        }, startDeltaTime)
+    }
+
+    let endAlarmId = undefined
+    if (endDeltaTime >= 0) {
+        endAlarmId = setTimeout(() => {
+            console.log("Should sound alarm with endTime: ", alarmEndDate)
+            alert("Sounding your " + props.name + " end")
+        }, endDeltaTime)
+    }
+
+    return { startAlarmId, endAlarmId }
+}
+function deactivateAlarm() {
+    clearTimeout(startAlarmTimeoutId.value)
+    clearTimeout(endAlarmTimeoutId.value)
+}
+
+
 </script>
