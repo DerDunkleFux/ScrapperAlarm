@@ -16,6 +16,9 @@ import { Alarm, getAlarmList, getColumns, getRowValues, getValidDates, openSched
  *
  * If the env variable is missing, we use a fallback query.
  */
+
+
+
 const searchURL =
   process.env.SPREADSHEET_URL ?? "wrong";
 

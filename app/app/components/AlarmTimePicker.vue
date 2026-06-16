@@ -59,9 +59,7 @@ const emit = defineEmits<{
 defineExpose({ toggleTimePicker, })
 
 onMounted(() => {
-
     const alarmId = activateAlarm()
-
     alarmTimeoutId.value = alarmId
 
 })

@@ -1,4 +1,10 @@
-# Google Search Scraper
+# Nuxt Alarms Display for Interactions Spreadsheet
+
+Nuxt page using Playwright scrraping to read data from google spreadsheet
+
+need .evn file with the current spreadsheets url as SPREASDSHEET_URL = 'link_to_spreadsheet'
+
+#  Scraper
 
 Minimal TypeScript Playwright scraper using pnpm.
 
@@ -12,36 +18,10 @@ cp .env.example .env
 
 Edit `.env`:
 
-```env
-SEARCH_QUERY=playwright typescript tutorial
-```
-
-## Run the scraper
-
-```bash
-pnpm scrape
-```
-
-The scraper opens Google, searches the query, extracts result titles, and writes:
-
-```txt
-data/google-results.json
-```
-
-## Open Playwright Codegen
-
-Use this to discover selectors visually:
-
-```bash
-pnpm codegen https://www.google.com
-```
-
-Or:
-
 ```bash
 pnpm exec playwright codegen https://www.google.com
 ```
-So kannst du easy codegeneration haben mit der UI into ts code sehr praktisch und vermutlich die meiste Zeit login,zur richtigen seite navigiern wird alles gespeichert wenn du den knopf mit den play ding drückst in der UI.
+
 ## Build TypeScript
 
 ```bash
@@ -52,4 +32,12 @@ pnpm build
 
 ```bash
 pnpm start
+```
+
+# NUXT
+To start local NUXT server after creating .env and installing dependencies
+```bash
+cd app
+pnpm install
+pnpm run dev
 ```
