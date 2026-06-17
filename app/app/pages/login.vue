@@ -89,7 +89,6 @@
 
 <script setup lang="ts">
 
-import type { Mouse } from 'playwright'
 definePageMeta({
     layout
         : 'default',
@@ -152,7 +151,7 @@ async function getAvailableDates(): Promise<string[] | null> {
     console.log("Trying to load available dates")
     if (response && response.success) {
         console.log("Got data looking for dates:")
-        console.log(response.data)
+        console.log(response)
         return response.data
     } else {
         console.log("Got error from scraper: ", response?.error)
