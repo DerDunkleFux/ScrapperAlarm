@@ -31,8 +31,9 @@
 
                         <!-- Start time picker -->
                         <v-col>
-                            <alarm-time-picker ref="startTimePickerRef" @time-picker-toggled="emit('childPickerToggled')"
-                                :time="startTime" :name="props.name">
+                            <alarm-time-picker ref="startTimePickerRef"
+                                @time-picker-toggled="emit('childPickerToggled')" :time="startTime" :name="props.name"
+                                :alarm-sound="alarmSound">
 
                             </alarm-time-picker>
                             <!-- <v-menu v-model="isStartMenuOpen" :persistent="true" :close-on-content-click="false"
@@ -62,7 +63,7 @@
 
                         <!-- End time Picker -->
                         <v-col>
-                             <alarm-time-picker ref="endTimePickerRef" @time-picker-toggled="emit('childPickerToggled')"
+                            <alarm-time-picker ref="endTimePickerRef" @time-picker-toggled="emit('childPickerToggled')"
                                 :time="endTime" :name="props.name">
 
                             </alarm-time-picker>
@@ -196,13 +197,11 @@ import AlarmTimePicker from '~/components/AlarmTimePicker.vue' // Adjust import 
 type TimePickerInstance = InstanceType<typeof AlarmTimePicker>
 const startTimePickerRef = ref<TimePickerInstance | null>()
 const endTimePickerRef = ref<TimePickerInstance | null>()
+
+const alarmSound = ref()
 onMounted(() => {
+    alarmSound.value = '/alarmSounds/defaultAlarm.mp3' // to be able to change alarmsounds in future
 
-    const { startAlarmId, endAlarmId } = activateAlarm()
-
-    startAlarmTimeoutId.value = startAlarmId
-    endAlarmTimeoutId.value = endAlarmId
-    // startTimePickerRef.value?.toggleTimePicker()
 })
 
 const emit = defineEmits<{
@@ -299,7 +298,7 @@ function getHoursMinutesFromString(s: string): { hours: number, minutes: number 
     hours = Number(s.replace(" ", "").replace(/am/i, "").replace(/pm/i, "").replace(/:(\d+)/, ""))
     minutes = Number(s.replace(" ", "").replace(/am/i, "").replace(/pm/i, "").replace(/(\d+):/, ""))
     if (s.toLowerCase().includes("pm") && hours !== 12) {
-        hours = hours+ 12
+        hours = hours + 12
     }
 
     return { hours, minutes }

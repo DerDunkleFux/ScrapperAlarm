@@ -58,6 +58,8 @@ const userName = ref("Manuel L Jackson")
 const alarms: Ref<Alarm[]> = ref([])
 const currDate = new Date()
 const alarmCardRefs = ref<InstanceType<typeof AlarmCard>[]>([])
+
+
 if (response.data.value?.success && response.data.value.data) {
     const alarmResult = response.data.value.data
     console.log("Got alarmresult: ", alarmResult)
