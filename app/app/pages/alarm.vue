@@ -53,7 +53,7 @@ const response = await useFetch<{
         userID: useCookie("userID"),
     }
 })
-console.log("got response from in frontend: ", response)
+console.log("got response from in frontend: ", response.data.value)
 const userName = ref("Manuel L Jackson")
 const alarms: Ref<Alarm[]> = ref([])
 const currDate = new Date()

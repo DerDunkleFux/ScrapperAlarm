@@ -3,7 +3,7 @@ import "dotenv/config";
 import { Browser, chromium, Page } from "playwright";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { Alarm, getAlarmList, getColumns, getRowValues, getValidDates, openSchedulePageByDate } from "./utils/scrapperUtils"
+import { Alarm, getAlarmList, getColumns, getRowAmountsByID, getRowValues, getValidDates, openSchedulePageByDate } from "./utils/scrapperUtils"
 
 // Testdata TODO read from frontend
 // const userID = '10109046'
@@ -20,7 +20,7 @@ const searchURL =
   process.env.SPREADSHEET_URL ?? "wrong";
 
 console.log("In scraper.ts and have searchQuery: ", searchURL)
-async function openSpreadsheet(): Promise<{ "page": Page, "browser" : Browser }> {
+async function openSpreadsheet(): Promise<{ "page": Page, "browser": Browser }> {
   /**
   * Launch Chromium.
   *
@@ -54,18 +54,18 @@ async function openSpreadsheet(): Promise<{ "page": Page, "browser" : Browser }>
   console.log("Opening page in openSpreadsheet")
 
 
-    // Navigate to the spreadsheet site
-    await page.goto(process.env.SPREADSHEET_URL ?? "", {
-      // await page.goto(searchQuery,{
-      waitUntil: "domcontentloaded",
-      timeout: 30_000,
-    });
+  // Navigate to the spreadsheet site
+  await page.goto(process.env.SPREADSHEET_URL ?? "", {
+    // await page.goto(searchQuery,{
+    waitUntil: "domcontentloaded",
+    timeout: 30_000,
+  });
   console.log("returning page and browser...")
   const result = { "page": page, "browser": browser }
-  
-    return result
 
-  } 
+  return result
+
+}
 export async function getAlarmData(dateString: string, userID: string): Promise<Alarm[]> {
 
   let alarmList = []
@@ -78,7 +78,7 @@ export async function getAlarmData(dateString: string, userID: string): Promise<
 
     // formatting dateString
     const selectedDate = new Date(dateString)
-    console.log("Got dateString while getting AlarmData: ",dateString)
+    console.log("Got dateString while getting AlarmData: ", dateString)
     console.log("Got selectedDate: \n", selectedDate)
     console.log("Got userID: ", userID)
     // TODO Ask user to choose from one of these dates then continue
@@ -92,15 +92,23 @@ export async function getAlarmData(dateString: string, userID: string): Promise<
      * Get columnnames from Excelfile
      */
     const columnNameList = await getColumns(page)
+
+    const rowAmounts = await getRowAmountsByID(page, userID)
     /**
      * Get rowValues for specific User 
      */
-    const rowValuesList = await getRowValues(page, userID, columnNameList.length)
+    // const rowValuesList: string[] = []
+    for (let i = 0; i <= rowAmounts; i++) {
+      console.log("In run nbr: ", i, " for reading rowvalues")
+      const currRowValues = await getRowValues(page, userID, columnNameList.length, i)
+      const currAlarmList = await getAlarmList(currRowValues, columnNameList, userID, selectedDate)
+      alarmList.push(...(currAlarmList))
+      console.log("Added line to alarList: ", currAlarmList)
+    }
     /**
      * Use retrieved information to format and create Alarm Array with necesary alarm-information
      * See type Alarm
      */
-    alarmList = await getAlarmList(rowValuesList, columnNameList, userID, selectedDate)
     // TODO If user starts at 23:00 and ends turn at next day their userID appears two times, read again the userID to check if that is the case
 
     // const dataDir = path.join(process.cwd(), "data");
@@ -108,7 +116,7 @@ export async function getAlarmData(dateString: string, userID: string): Promise<
     //   recursive: true,
     // });
 
-  }  finally {
+  } finally {
     /**
      * Always close the browser, even if scraping fails.
      */
@@ -122,13 +130,13 @@ export async function getAlarmData(dateString: string, userID: string): Promise<
  * Searches spreadsheet for currently available dates
  * @returns Promise of Date array with the Dates available in the spreadsheet
  */
-export async function getAvailableDates(): Promise<Date[]>{
+export async function getAvailableDates(): Promise<Date[]> {
   console.log("in getAvailableDates")
   const openResult = await openSpreadsheet()
   const browser = openResult.browser
   let result: Date[] = []
   try {
-  const page = openResult.page
+    const page = openResult.page
     result = await getValidDates(page)
   } catch (e) {
     console.error("Got error while searching for valid dates: ", e)

@@ -64,7 +64,7 @@
                         <!-- End time Picker -->
                         <v-col>
                             <alarm-time-picker ref="endTimePickerRef" @time-picker-toggled="emit('childPickerToggled')"
-                                :time="endTime" :name="props.name">
+                                :time="endTime" :name="props.name" :alarm-sound="alarmSound">
 
                             </alarm-time-picker>
                             <!-- <v-menu v-model="isEndMenuOpen" :persistent="true" :close-on-content-click="false">

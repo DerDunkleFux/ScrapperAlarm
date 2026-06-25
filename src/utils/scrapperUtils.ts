@@ -54,7 +54,7 @@ export async function getCellValueByIdx(page: Page, currIdx: number, maxColIdx?:
     // If it's still reading the old value, give the page a few milliseconds to update
     while (newValue === oldValue && attempts < maxAttempts && maxColIdx == undefined) {
         console.log("Got the same value: ", newValue)
-        await page.waitForTimeout(300); // Small, efficient increments
+        await page.waitForTimeout(200); // Small, efficient increments
         await page.keyboard.press('ArrowRight', { delay: delay });
         newValue = await getCurrCellData(page);
         attempts++;
@@ -103,7 +103,7 @@ export async function openSchedulePageByDate(page: Page, date: Date = new Date()
     const monthNumber = String(date.getUTCMonth() + 1).padStart(2, "0")
     const yearNumber = date.getUTCFullYear()
 
-    const rawDay = date.toLocaleDateString('es-ES', { weekday: "long", timeZone: "UTC" }) 
+    const rawDay = date.toLocaleDateString('es-ES', { weekday: "long", timeZone: "UTC" })
     // change accent marks (à,è,ì...) to regular letters to be read (mièrcoles => miercoles)
     const dayWord = rawDay.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     // e.g 'lunes 01/06/2026' or 'Lunes ...'
@@ -127,49 +127,35 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
     let currCellName: string | null = ""
     type ColumnName = { name: string, idx: number }
     const columnNameList: ColumnName[] = []
-
+    // await page.waitForLoadState('networkidle');
     const gridArea = page.locator('.grid-table-container, canvas').first();
-    await gridArea.click({ delay: delay });
 
-    await page.keyboard.press('Control+f', { delay: delay });
+    await gridArea.waitFor({ state: 'attached', timeout: 1500 });
+    await gridArea.focus();
+    await page.keyboard.press('Shift');
+    await page.waitForTimeout(200);
+    // await gridArea.focus();
+    await page.waitForTimeout(1500);
+    console.log("Pressing F!")
+    await page.keyboard.press('Control+f');
     const findInput = page.locator('.docs-findinput-input, .waffle-find-and-replace-dialog input').first();
     await findInput.waitFor({ state: 'visible', timeout: 5000 });
-    
+
     // Clear any leftover data and type the keyword directly into the element field
-    await findInput.fill('');
     await findInput.fill('WinID');
     // await page.keyboard.type('WinID', { delay: delay });
-    await page.keyboard.press('Enter', { delay: delay });
-    // wait for system to finish typing and then verify the escape press
-    let attempt = 0
-    const maxAttempts = 10
-    let pressedEscape = false
-    while (!pressedEscape && attempt < maxAttempts) {
-        await page.keyboard.press('Escape', { delay: delay });
-        // Look for the ctrl + f overlay container
-        // pressedEscape =  !await page.locator('.docs-findinput-container, .waffle-find-and-replace-dialog').isVisible().catch(() => false);
-        pressedEscape = await findPageElement(page, '.docs-findinput-container, .waffle-find-and-replace-dialog')
-        attempt++;
-        console.log(`Did we register the escape? : ${pressedEscape ? "Yes" : "no"}`)
-    }
-    await page.waitForFunction(
-        () => {
-            const formulaBar = document.querySelector('#t-formula-bar-input');
-            return formulaBar && formulaBar.textContent === 'WinID';
-        },
-        { timeout: 4000 }
-    ).catch(() => console.log("Warning: Formula bar wait timed out, attempting escape anyway."));
-    const text = await getCurrCellData(page)
-    // console.log("In getColumns got first text: ", text)
-    if (text != "WinID")
-        throw new Error("Couldn't find first line with 'WinID' to select the alarm names");
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+
+    await gridArea.focus();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
 
     while (true) {
         const result = await getCellValueByIdx(page, currIdx)
         currCellName = result.cellValue
         // console.log("Result from getCellValue: ", currCellName)
-        if (currCellName === null)
-            break;
+        if (currCellName === null) break;
         currIdx = result.idx
 
         const currCol: ColumnName = { name: currCellName, idx: currIdx }
@@ -179,33 +165,84 @@ export async function getColumns(page: Page): Promise<{ name: string, idx: numbe
     return columnNameList
 }
 
+export async function getRowAmountsByID(page: Page, userID: string): Promise<number> {
+    await page.keyboard.press('Control+f');
+    const findInput = page.locator('.docs-findinput-input, .waffle-find-and-replace-dialog input').first();
+
+    // If it's closed for some reason, re-trigger it safely
+    if (!await findInput.isVisible()) {
+        const gridArea = page.locator('.grid-table-container, canvas').first();
+        await gridArea.click({ position: { x: 10, y: 10 }, delay: delay });
+        await page.keyboard.press('Control+f');
+    }
+
+    await findInput.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Clear and fill the User ID
+    await findInput.fill(userID);
+    await page.waitForTimeout(500);
+
+    const findInputCount = page.locator('.docs-findinput-count').first();
+    const text = await findInputCount.innerHTML();
+    const match = text.match(/(?<=\s)\d+$/);
+    let lineCount = 0;
+
+    if (match) {
+        console.log("Got match:", match);
+        lineCount = Number(match[0]) - 1;
+    }
+
+    console.log("Returning lineCount: ", lineCount);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+    return lineCount;
+}
+
 /**
  * Searches for userID and returns the whole row in an Array
  * @param page 
  * @param userID 
+ * @param lineCount 
  * @returns promise of array with all of the cellvalues corresponding to that userID
  */
-export async function getRowValues(page: Page, userID: string, maxColIdx: number): Promise<string[]> {
+export async function getRowValues(page: Page, userID: string, maxColIdx: number, lineCount: number = 0): Promise<string[]> {
 
     const gridArea = page.locator('.grid-table-container, canvas').first();
-    await gridArea.click({ delay: delay });
-
     await page.keyboard.press('Control+f', { delay: delay });
+    await page.waitForTimeout(500)
     const findInput = page.locator('.docs-findinput-input, .waffle-find-and-replace-dialog input').first();
+    console.log("Got locator in getRowValues: ", findInput)
     await findInput.waitFor({ state: 'visible', timeout: 5000 });
-    
+
     // Clear any leftover data and type the keyword directly into the element field
-    await findInput.fill('');
-    await page.keyboard.type(userID, { delay: delay });
-    await page.keyboard.press('Enter',{ delay: delay } )
-    await page.keyboard.press('Escape', { delay: delay });
+    await findInput.fill(userID);
+    await page.waitForTimeout(200);
+    // await page.keyboard.type(userID, { delay: delay });
+    // Press enter afterwards to get another row result
+
+    if (lineCount != 0) {
+        await page.keyboard.press('Enter', { delay: delay })
+    }
+    for (let i = 0; i < lineCount; i++) {
+        console.log("Shoudl press enter with idx ", i)
+        await page.keyboard.press('Enter', { delay: delay })
+    }
+    await page.waitForTimeout(200);
+
+    await gridArea.focus();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+
+
     const text = await getCurrCellData(page)
+    console.log("Got useridtext: ", text)
     if (text != userID)
         throw new Error("Couldn't find the given UserID: " + userID);
     const resultArray = [userID]
     let currIdx = 0
     while (true) {
         const result = await getCellValueByIdx(page, currIdx, maxColIdx)
+
         const currCellName = result.cellValue
         if (currCellName === null)
             break;

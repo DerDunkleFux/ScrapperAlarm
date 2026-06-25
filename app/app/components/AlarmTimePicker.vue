@@ -4,7 +4,7 @@
         <template v-slot:activator="{ props: startMenuProps }">
             <div class="cursor-pointer text-center text-5xl" v-bind="startMenuProps"
                 @click="onOpenTimePicker($event, startMenuProps.onClick)">
-                {{ modelTime }} 
+                {{ modelTime }}
             </div>
         </template>
         <!-- @update:model-value="updateTime" -->
@@ -43,7 +43,7 @@
 const props = defineProps({
     time: { type: String, required: true },
     name: { type: String, required: true },
-    alarmSound: { type: String, default: "hornse"}
+    alarmSound: { type: String, default: "hornse" }
 })
 
 const modelTime = ref(props.time)
@@ -54,13 +54,13 @@ const isMenuOpen: Ref<boolean> = ref(false)
 const alarmTimeoutId: Ref<NodeJS.Timeout | undefined> = ref()
 const preventDisable = ref(false)
 const alarmSoundAudio = computed({
-  get: () => new Audio(props.alarmSound),
-  set: (val) => {
-    console.log("Setting alarmSoundAudio cputed to new val: ", val, "but does currently nothing")
-  }
+    get: () => new Audio(props.alarmSound),
+    set: (val) => {
+        console.log("Setting alarmSoundAudio cputed to new val: ", val, "but does currently nothing")
+    }
 })
 
-    // () => new Audio(props.alarmSound))
+// () => new Audio(props.alarmSound))
 
 const emit = defineEmits<{
     (e: 'timePickerToggled'): void
@@ -69,9 +69,8 @@ defineExpose({ toggleTimePicker, })
 
 onMounted(() => {
 
-    const alarmId = activateAlarm()
-
-    alarmTimeoutId.value = alarmId
+    alarmTimeoutId.value = activateAlarm()
+ 
 
 })
 
@@ -144,7 +143,7 @@ function activateAlarm(): NodeJS.Timeout | undefined {
             alert("Sounding your " + props.name + " start")
             alarmSoundAudio.value.pause()
         }, deltaTime)
-        console.log("created new alarm with id: ", alarmId)
+        console.log("created new alarm with id: ", alarmId, "for time: ", alarmDate)
     }
     return alarmId
 }
