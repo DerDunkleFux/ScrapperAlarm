@@ -71,7 +71,7 @@ if (response.data.value?.success && response.data.value.data) {
 }
 
 
-console.log("Route params: ", useRoute().query)
+// console.log("Route params: ", useRoute().query)
 onMounted(async (val: any) => {
     console.log("Mounted site, got something: ", val)
 })
