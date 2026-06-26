@@ -1,15 +1,15 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import sqlite3 from 'sqlite3'; // Or 'better-sqlite3' if you installed that instead
+import sqlite3 from 'sqlite3'; 
 
 export default defineNitroPlugin((nitroApp : any) => {
-  // Define the path to your SQLite file (placed in the root of your project)
+  
   const dbPath = resolve(process.cwd(), 'database.db');
 
   console.log(`[Server Startup] Checking database at: ${dbPath}`);
 
   if (!existsSync(dbPath)) {
-    console.log('[Server Startup] database.sqlite not found. Creating a new one...');
+    console.log('[Server Startup] database.db not found. Creating a new one...');
     
     // 1. Create an empty file to establish its existence
     writeFileSync(dbPath, '');
@@ -54,6 +54,6 @@ export default defineNitroPlugin((nitroApp : any) => {
       });
     });
   } else {
-    console.log('[Server Startup] database.sqlite already exists. Skipping initialization.');
+    console.log('[Server Startup] database.db already exists. Skipping initialization.');
   }
 });
