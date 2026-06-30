@@ -9,3 +9,5 @@ test-results
 test.py
 app/.nuxt
 AlarmScraper.zip
+app/database.db
+

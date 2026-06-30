@@ -62,7 +62,7 @@ const alarmCardRefs = ref<InstanceType<typeof AlarmCard>[]>([])
 
 if (response.data.value?.success && response.data.value.data) {
     const alarmResult = response.data.value.data
-    console.log("Got alarmresult: ", alarmResult)
+    // console.log("Got alarmresult: ", alarmResult)
     alarms.value = purgeAlarms(alarmResult)
     console.log("Set alarms.value: ", alarms.value)
 } else {

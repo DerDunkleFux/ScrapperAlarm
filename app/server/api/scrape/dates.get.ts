@@ -6,6 +6,7 @@ export default defineEventHandler(async (event): Promise<
     try {
             
         const result = await getAvailableDates()
+
         return { success: true, data: result }
     } catch (e: any) {
         return {success: false, error: e.message || "Failed to GET available dates"} 

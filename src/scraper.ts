@@ -32,7 +32,7 @@ async function openSpreadsheet(): Promise<{ "page": Page, "browser": Browser }> 
   * - Better while learning and debugging.
   */
   const browser = await chromium.launch({
-    headless: false,
+    headless: true,
   });
 
   /**

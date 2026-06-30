@@ -36,9 +36,9 @@ export default defineNitroPlugin((nitroApp : any) => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT,
             name TEXT NOT NULL,
-            start_time TEXT,
-            end_time TEXT,
-            start_date TEXT,
+            start TEXT,
+            end TEXT,
+            startDate TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
           )
         `, (err) => {

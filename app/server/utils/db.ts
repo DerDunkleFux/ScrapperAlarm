@@ -24,7 +24,7 @@ export const fetchAll = async (db: Database, sql: string, params?: any) => {
 export const execute = async (db: Database, sql: string, params: any = []) => {
   if (params && params.length > 0) {
     return new Promise<void>((resolve, reject) => {
-      db.run(sql, params, (err) => {
+     db.run(sql, params, (err) => {
         if (err) reject(err);
         resolve();
       });
